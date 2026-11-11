@@ -10,6 +10,8 @@ const links = [
   { href: '#visit', label: 'Contact' },
 ];
 const book = business.booking ?? { label: 'Call to Book', url: business.phone.href };
+const bookIcon = business.booking ? 'calendar' : 'phone';
+const bookExt = business.booking ? { target: '_blank', rel: 'noopener' } : {};
 ---
 <header class="nav" data-nav>
   <div class="nav__inner">
@@ -23,8 +25,8 @@ const book = business.booking ?? { label: 'Call to Book', url: business.phone.hr
 
     <div class="nav__actions">
       <a class="nav__phone" href={business.phone.href}>{business.phone.display}</a>
-      <a class="btn btn--gold nav__cta" href={book.url}>
-        <Icon name="phone" /> <span>{book.label}</span>
+      <a class="btn btn--gold nav__cta" href={book.url} {...bookExt}>
+        <Icon name={bookIcon} /> <span>{book.label}</span>
       </a>
       <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="menu" data-menu-toggle>
         <span class="sr-only">Open menu</span>
@@ -44,7 +46,8 @@ const book = business.booking ?? { label: 'Call to Book', url: business.phone.hr
       </ol>
     </nav>
     <div class="menu__foot">
-      <a class="btn btn--gold btn--lg" href={book.url}><Icon name="phone" /> <span>{book.label}</span> <span style="white-space:nowrap">{business.phone.display}</span></a>
+      <a class="btn btn--gold btn--lg" href={book.url} {...bookExt}><Icon name={bookIcon} /> <span>{book.label}</span></a>
+      <a class="btn btn--lg menu__call" href={business.phone.href}><Icon name="phone" /> <span style="white-space:nowrap">{business.phone.display}</span></a>
       <div class="menu__meta">
         <p>{business.address.street}<br />{business.address.city}, {business.address.region} {business.address.postalCode}</p>
         <p class="muted">Mon–Fri {formatRange(hoursMondayFirst[0])}<br />Sat {formatRange(hoursMondayFirst[5])}<br />Sun Closed</p>
@@ -123,6 +126,7 @@ const book = business.booking ?? { label: 'Call to Book', url: business.phone.hr
   .menu.is-open .menu__links a { transform: none; }
   .menu__num { font-family: var(--sans); font-size: 0.7rem; letter-spacing: 0.2em; color: var(--gold); }
   .menu__foot { display: grid; gap: 1.75rem; }
+  .menu__call { margin-top: -1.1rem; }
   .menu__foot .btn { width: 100%; white-space: normal; flex-wrap: wrap; column-gap: 0.6rem; }
   .menu__meta { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem; line-height: 1.55; }
 </style>

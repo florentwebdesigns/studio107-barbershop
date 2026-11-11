@@ -4,6 +4,7 @@ import '@fontsource/instrument-serif/400-italic.css';
 import '@fontsource-variable/manrope';
 import '../styles/global.css';
 import { business, hours, fullAddress } from '../data/business';
+import { services, serviceGroups, priceRange } from '../data/services';
 
 interface Props {
   title: string;
@@ -42,6 +43,27 @@ const jsonLd = {
       opens: h.open,
       closes: h.close,
     })),
+  ...(services.length ? {
+    priceRange,
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Services',
+      itemListElement: serviceGroups.map((g) => ({
+        '@type': 'OfferCatalog',
+        name: g,
+        itemListElement: services.filter((s) => s.group === g).map((s) => ({
+          '@type': 'Offer',
+          itemOffered: { '@type': 'Service', name: s.name },
+          priceSpecification: {
+            '@type': 'PriceSpecification',
+            priceCurrency: 'USD',
+            ...(s.from ? { minPrice: s.price } : { price: s.price }),
+          },
+        })),
+      })),
+    },
+  } : {}),
+  ...(business.booking ? { potentialAction: { '@type': 'ReserveAction', target: business.booking.url } } : {}),
   ...(business.social.length ? { sameAs: business.social.map((s) => s.url) } : {}),
 };
 ---

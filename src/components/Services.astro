@@ -1,136 +1,196 @@
 ---
 import Icon from './Icon.astro';
-import { services } from '../data/services';
-import { business, hoursMondayFirst, formatRange } from '../data/business';
+import PoleField from './PoleField.astro';
+import { services, serviceGroups } from '../data/services';
+import { business } from '../data/business';
 
-const hasMenu = services.length > 0;
-const groups = hasMenu
-  ? Array.from(
-      services.reduce((m, s) => {
-        const g = s.group ?? 'Services';
-        if (!m.has(g)) m.set(g, []);
-        m.get(g)!.push(s);
-        return m;
-      }, new Map<string, typeof services>()),
-    )
-  : [];
 const book = business.booking ?? { label: 'Call to Book', url: business.phone.href };
+const bookIcon = business.booking ? 'calendar' : 'phone';
+const bookExt = business.booking ? { target: '_blank', rel: 'noopener' } : {};
+const provider = business.booking?.provider;
+
+const groups = serviceGroups
+  .map((name) => ({ name, items: services.filter((s) => s.group === name) }))
+  .filter((g) => g.items.length);
+
+// Balance the groups into two columns by item count, keeping their order.
+const total = services.length;
+const cols: (typeof groups)[] = [[], []];
+let left = 0;
+for (const g of groups) {
+  if (cols[1].length === 0 && (cols[0].length === 0 || left + g.items.length <= total / 2)) { cols[0].push(g); left += g.items.length; }
+  else cols[1].push(g);
+}
+let n = 0;
+const numbered = cols.map((c) => c.map((g) => ({ ...g, num: String(++n).padStart(2, '0') })));
+const label = (s: (typeof services)[number]) => `${s.from ? 'From ' : ''}$${s.price}`;
 ---
 <section class="section services" id="services" aria-labelledby="services-title">
   <div class="services__bg" aria-hidden="true"></div>
+  <PoleField poles={[
+    { x: 95, y: 9, s: 1.1, r: 10, o: 0.3 },
+    { x: 3.5, y: 52, s: 0.8, r: -9, o: 0.2, sm: false },
+    { x: 97, y: 78, s: 0.75, r: -12, o: 0.2, sm: false },
+  ]} />
   <div class="wrap">
     <header class="services__head">
       <div>
-        <p class="eyebrow" data-reveal>Services</p>
+        <p class="eyebrow" data-reveal>Services &amp; pricing</p>
         <h2 class="h2" id="services-title" data-reveal="lines">
-          <span class="line"><span>The cut, and</span></span>
-          <span class="line"><span><em class="gold-text">everything around it.</em></span></span>
+          <span class="line"><span>The menu.</span></span>
+          <span class="line"><span><em class="gold-text">Pick your cut.</em></span></span>
         </h2>
       </div>
-      <p class="lede" data-reveal style="--d:0.1s">Men’s haircuts and grooming at Studio 107. Professional, precise and finished properly.</p>
+      <div class="services__intro" data-reveal style="--d:0.1s">
+        <p class="lede">Every service and price, straight from our booking page. Choose what you’re after, then book online or give the shop a call.</p>
+        <nav class="services__chips" aria-label="Service categories">
+          {numbered.flat().map((g) => (
+            <a href={`#svc-${g.num}`}>{g.name}</a>
+          ))}
+        </nav>
+      </div>
     </header>
 
-    {hasMenu ? (
-      <div class="menu-list">
-        {groups.map(([group, items]) => (
-          <div class="menu-group" data-reveal>
-            <h3 class="menu-group__title">{group}</h3>
-            <ul>
-              {items.map((s) => (
-                <li class="menu-item">
-                  <div class="menu-item__row">
-                    <span class="menu-item__name">{s.name}</span>
-                    <span class="menu-item__leader" aria-hidden="true"></span>
-                    {s.price && <span class="menu-item__price">{s.price}</span>}
-                  </div>
-                  {(s.description || s.duration) && (
-                    <p class="menu-item__meta">{s.description}{s.description && s.duration && ' · '}{s.duration}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+    <div class="svc-menu">
+      {numbered.map((col) => (
+        <div class="svc-menu__col">
+          {col.map((g) => (
+            <section class="menu-group" id={`svc-${g.num}`} aria-labelledby={`svc-${g.num}-t`} data-reveal>
+              <header class="menu-group__head">
+                <span class="menu-group__num">{g.num}</span>
+                <h3 class="menu-group__title" id={`svc-${g.num}-t`}>{g.name}</h3>
+                <span class="menu-group__count">{g.items.length} {g.items.length === 1 ? 'service' : 'services'}</span>
+              </header>
+              <ul>
+                {g.items.map((s) => (
+                  <li>
+                    <a class="svc" href={book.url} {...bookExt}
+                      aria-label={`${s.name}, ${label(s)}. ${book.label}${provider ? ` on ${provider}` : ''}`}>
+                      <span class="svc__row">
+                        <span class="svc__name">{s.name}</span>
+                        <span class="svc__leader" aria-hidden="true"></span>
+                        <span class="svc__price">
+                          {s.from && <small>From</small>}
+                          <span class="svc__cur">$</span>{s.price}
+                        </span>
+                      </span>
+                      {s.description && <span class="svc__desc">{s.description}</span>}
+                      <span class="svc__book" aria-hidden="true">Book <Icon name="arrow" /></span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      ))}
+    </div>
+
+    <aside class="book-band" data-reveal aria-labelledby="book-band-title">
+      <div class="book-band__copy">
+        <p class="book-band__eyebrow">{provider ? `Online booking · ${provider}` : 'Booking'}</p>
+        <h3 class="h3" id="book-band-title">Ready when <em class="gold-text">you are.</em></h3>
+        <p class="muted">Pick a service and a time online, or call the shop during opening hours.</p>
       </div>
-    ) : (
-      <div class="pillars">
-        <article class="pillar" data-reveal>
-          <span class="pillar__num">01</span>
-          <h3 class="h3">Men’s Haircuts</h3>
-          <p class="muted">Tell your barber how you wear it and how you want it. Then sit back.</p>
-        </article>
-        <article class="pillar" data-reveal style="--d:0.1s">
-          <span class="pillar__num">02</span>
-          <h3 class="h3">Grooming</h3>
-          <p class="muted">The finishing details that make a clean look feel complete.</p>
-        </article>
-        <aside class="menu-card" data-reveal style="--d:0.2s" aria-labelledby="menu-card-title">
-          <p class="menu-card__eyebrow">Services &amp; pricing</p>
-          <h3 class="h3" id="menu-card-title">Ask for the current menu</h3>
-          <p class="muted">For today’s full list of services, prices and availability, give the shop a call. We’ll get you sorted.</p>
-          <a class="btn btn--gold" href={book.url}><Icon name="phone" /> {book.label}</a>
-          <dl class="menu-card__hours">
-            <div><dt>Mon – Fri</dt><dd>{formatRange(hoursMondayFirst[0])}</dd></div>
-            <div><dt>Saturday</dt><dd>{formatRange(hoursMondayFirst[5])}</dd></div>
-            <div><dt>Sunday</dt><dd>Closed</dd></div>
-          </dl>
-        </aside>
+      <div class="book-band__actions">
+        <a class="btn btn--gold btn--lg" href={book.url} {...bookExt}><Icon name={bookIcon} /> {book.label}</a>
+        {business.booking && <a class="btn btn--lg book-band__call" href={business.phone.href}><Icon name="phone" /> {business.phone.display}</a>}
       </div>
-    )}
+    </aside>
+    <p class="services__fine">Prices as listed on our {provider ?? 'booking'} page and subject to change. “From” prices are starting prices.</p>
   </div>
 </section>
 
 <style>
-  .services { background: var(--ink-2); overflow: hidden; }
+  .services { background: var(--ink-2); overflow: hidden; isolation: isolate; }
   .services__bg {
-    position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+    position: absolute; inset: 0; pointer-events: none; z-index: -2;
     background:
-      radial-gradient(60% 50% at 85% 0%, rgba(201, 162, 94, 0.12), transparent 70%),
-      repeating-linear-gradient(0deg, transparent 0 46px, rgba(243, 238, 230, 0.025) 46px 47px);
+      radial-gradient(55% 45% at 88% 0%, rgba(201, 162, 94, 0.13), transparent 70%),
+      radial-gradient(50% 40% at 0% 100%, rgba(110, 76, 52, 0.18), transparent 70%),
+      repeating-linear-gradient(0deg, transparent 0 46px, rgba(243, 238, 230, 0.018) 46px 47px);
   }
   .services .wrap { position: relative; }
-  .services__head { display: grid; grid-template-columns: 1.3fr 1fr; gap: 2rem 4rem; align-items: end; margin-bottom: clamp(3rem, 6vw, 5.5rem); }
-  .services__head > div { display: grid; gap: 1.6rem; }
-  .services__head .lede { justify-self: end; }
-
-  .pillars { display: grid; grid-template-columns: 1fr 1fr 1.25fr; border-top: 1px solid var(--line-light); }
-  .pillar { padding: 2.5rem 2.5rem 2.5rem 0; display: grid; gap: 1rem; align-content: start; }
-  .pillar + .pillar { padding-left: 2.5rem; border-left: 1px solid var(--line-light); }
-  .pillar__num { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.24em; color: var(--gold); }
-  .pillar .h3 { font-size: clamp(2rem, 1.5rem + 1.6vw, 3rem); }
-  .pillar p { max-width: 26ch; }
-
-  .menu-card {
-    margin: 2.5rem 0 0 2.5rem; padding: clamp(1.75rem, 3vw, 2.75rem); align-self: start;
-    background: linear-gradient(160deg, #1f1b17, #171411); border: 1px solid rgba(201, 162, 94, 0.28);
-    display: grid; gap: 1.1rem; position: relative;
+  .services__head { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem 4rem; align-items: end; margin-bottom: clamp(3rem, 6vw, 5rem); }
+  .services__head > div:first-child { display: grid; gap: 1.6rem; }
+  .services__intro { display: grid; gap: 1.6rem; justify-self: end; max-width: 30rem; }
+  .services__chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .services__chips a {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+    padding: 0.55rem 0.9rem; border: 1px solid rgba(201, 162, 94, 0.3); border-radius: 999px; color: var(--text-light);
+    transition: background 0.35s var(--ease-out), color 0.35s, border-color 0.35s;
   }
-  .menu-card::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(201, 162, 94, 0.12); pointer-events: none; }
-  .menu-card__eyebrow { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold); }
-  .menu-card .btn { justify-self: start; margin-top: 0.4rem; position: relative; }
-  .menu-card__hours { margin-top: 0.6rem; border-top: 1px solid var(--line-light); padding-top: 1rem; display: grid; gap: 0.45rem; font-size: 0.9rem; }
-  .menu-card__hours div { display: flex; justify-content: space-between; gap: 1rem; }
-  .menu-card__hours dt { color: var(--muted-light); }
+  .services__chips a:hover { background: var(--gold); border-color: var(--gold); color: var(--ink); }
 
-  /* Populated menu */
-  .menu-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 3rem 5rem; }
-  .menu-group__title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold); padding-bottom: 1rem; border-bottom: 1px solid var(--line-light); }
-  .menu-item { padding-block: 1.25rem; border-bottom: 1px solid var(--line-light); }
-  .menu-item__row { display: flex; align-items: baseline; gap: 0.75rem; }
-  .menu-item__name { font-family: var(--serif); font-size: 1.6rem; line-height: 1.1; }
-  .menu-item__leader { flex: 1; border-bottom: 1px dotted rgba(243, 238, 230, 0.25); transform: translateY(-0.3em); }
-  .menu-item__price { font-family: var(--serif); font-size: 1.5rem; color: var(--gold-hi); }
-  .menu-item__meta { margin-top: 0.35rem; font-size: 0.92rem; color: var(--muted-light); }
+  /* Menu */
+  .svc-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 0 clamp(2.5rem, 6vw, 6rem); align-items: start; }
+  .svc-menu__col { display: grid; gap: clamp(3rem, 5vw, 4.5rem); }
+  .menu-group { scroll-margin-top: calc(var(--nav-h) + 1.5rem); }
+  .menu-group__head {
+    display: flex; align-items: baseline; gap: 1rem; padding-bottom: 1.1rem; margin-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(201, 162, 94, 0.45);
+  }
+  .menu-group__num { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.2em; color: var(--gold); }
+  .menu-group__title { font-family: var(--serif); font-weight: 400; font-style: italic; font-size: clamp(1.9rem, 1.5rem + 1.2vw, 2.6rem); line-height: 1; }
+  .menu-group__count { margin-left: auto; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted-light); }
+
+  .svc {
+    position: relative; display: grid; gap: 0.35rem; padding: 1.3rem 0;
+    border-bottom: 1px solid var(--line-light);
+  }
+  .svc::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--gold-grad);
+    transform: scaleX(0); transform-origin: left; transition: transform 0.7s var(--ease-out);
+  }
+  .svc__row { display: flex; align-items: baseline; gap: 0.8rem; }
+  .svc__name { font-family: var(--serif); font-size: clamp(1.35rem, 1.2rem + 0.5vw, 1.7rem); line-height: 1.15; transition: color 0.35s, transform 0.5s var(--ease-out); }
+  .svc__leader { flex: 1; min-width: 1.5rem; border-bottom: 1px dotted rgba(201, 162, 94, 0.35); transform: translateY(-0.35em); }
+  .svc__price {
+    display: inline-flex; align-items: baseline; gap: 0.1rem; white-space: nowrap;
+    font-family: var(--serif); font-size: clamp(1.45rem, 1.25rem + 0.6vw, 1.85rem); line-height: 1; color: var(--gold-hi);
+  }
+  .svc__price small {
+    font-family: var(--sans); font-size: 0.56rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold); margin-right: 0.45rem; transform: translateY(-0.2em);
+  }
+  .svc__cur { font-size: 0.62em; transform: translateY(-0.45em); color: var(--gold); }
+  .svc__desc { font-size: 0.9rem; line-height: 1.5; color: var(--muted-light); max-width: 40ch; }
+  .svc__book {
+    position: absolute; right: 0; bottom: 0.55rem; display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold);
+    opacity: 0; transform: translateX(-8px); transition: opacity 0.4s, transform 0.5s var(--ease-out);
+  }
+  .svc__book :global(svg) { width: 12px; height: 12px; }
+  @media (hover: hover) {
+    .svc:hover::after, .svc:focus-visible::after { transform: scaleX(1); }
+    .svc:hover .svc__name, .svc:focus-visible .svc__name { color: var(--gold-hi); transform: translateX(6px); }
+    .svc:hover .svc__book, .svc:focus-visible .svc__book { opacity: 1; transform: none; }
+  }
+
+  /* Booking band */
+  .book-band {
+    margin-top: clamp(3.5rem, 7vw, 6rem); position: relative;
+    display: flex; align-items: center; justify-content: space-between; gap: 2rem 3rem; flex-wrap: wrap;
+    padding: clamp(1.75rem, 3.5vw, 3rem);
+    background: radial-gradient(70% 120% at 100% 0%, rgba(201, 162, 94, 0.14), transparent 60%), linear-gradient(160deg, #1f1813, #15110d);
+    border: 1px solid rgba(201, 162, 94, 0.3);
+  }
+  .book-band::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(201, 162, 94, 0.12); pointer-events: none; }
+  .book-band__copy { display: grid; gap: 0.6rem; }
+  .book-band__eyebrow { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold); }
+  .book-band .h3 { font-size: clamp(2rem, 1.5rem + 1.8vw, 3rem); }
+  .book-band__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; position: relative; }
+  .book-band__call { --bd: rgba(201, 162, 94, 0.35); }
+  .services__fine { margin-top: 1.2rem; font-size: 0.78rem; color: var(--muted-light); }
 
   @media (max-width: 1000px) {
     .services__head { grid-template-columns: 1fr; }
-    .services__head .lede { justify-self: start; }
-    .pillars { grid-template-columns: 1fr 1fr; }
-    .menu-card { grid-column: 1 / -1; margin: 0 0 0; }
+    .services__intro { justify-self: start; }
+    .svc-menu { grid-template-columns: 1fr; }
+    .svc-menu__col + .svc-menu__col { margin-top: clamp(3rem, 5vw, 4.5rem); }
   }
-  @media (max-width: 600px) {
-    .pillars { grid-template-columns: 1fr; }
-    .pillar, .pillar + .pillar { padding: 2rem 0; border-left: 0; }
-    .pillar + .pillar { border-top: 1px solid var(--line-light); }
+  @media (max-width: 520px) {
+    .svc__desc { max-width: none; }
+    .book-band__actions, .book-band__actions .btn { width: 100%; }
   }
 </style>

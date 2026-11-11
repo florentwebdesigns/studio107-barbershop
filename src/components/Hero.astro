@@ -2,6 +2,8 @@
 import Icon from './Icon.astro';
 import { business } from '../data/business';
 const book = business.booking ?? { label: 'Call to Book', url: business.phone.href };
+const bookIcon = business.booking ? 'calendar' : 'phone';
+const bookExt = business.booking ? { target: '_blank', rel: 'noopener' } : {};
 ---
 <section class="hero" id="top" data-hero aria-labelledby="hero-title">
   <!-- The real Studio 107 storefront, brought to life in WebGL (see src/scripts/storefront-hero.ts). -->
@@ -26,7 +28,7 @@ const book = business.booking ?? { label: 'Call to Book', url: business.phone.hr
       Professional men’s haircuts and grooming at 265 Mountain&nbsp;Ave.
     </p>
     <div class="hero__ctas" data-hero-in style="--d:1.4s">
-      <a class="btn btn--gold btn--lg" href={book.url}><Icon name="phone" /> {book.label}</a>
+      <a class="btn btn--gold btn--lg" href={book.url} {...bookExt}><Icon name={bookIcon} /> {book.label}</a>
       <a class="btn btn--lg hero__explore" href="#gallery">Explore the Shop <Icon name="arrow" /></a>
     </div>
   </div>

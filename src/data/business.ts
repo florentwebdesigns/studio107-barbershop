@@ -27,11 +27,13 @@ export const business = {
   timeZone: 'America/New_York',
 
   /**
-   * Online booking. Leave as null until the shop confirms a booking provider.
-   * While null, every booking CTA becomes "Call to Book" using the phone link.
-   * Example: { label: 'Book Online', url: 'https://...' }
+   * Online booking (verified: the shop's Vagaro page). Set to null to fall back to "Call to Book".
    */
-  booking: null as null | { label: string; url: string },
+  booking: {
+    label: 'Book Now',
+    provider: 'Vagaro',
+    url: 'https://www.vagaro.com/studio107barbersho/services',
+  } as null | { label: string; provider?: string; url: string },
 
   /** Social profiles: add verified URLs only. e.g. { label: 'Instagram', url: 'https://instagram.com/...' } */
   social: [] as { label: string; url: string }[],

@@ -29,9 +29,9 @@ The build is plain static HTML/CSS/JS in `dist/`, so it runs on any static host.
 | Colours, fonts, spacing | `src/styles/global.css` (tokens at the top) |
 | Hero film timing | `src/scripts/hero-film.ts` |
 
-- **Booking:** `business.booking` is `null`, so every booking button is "Call to Book" → `tel:+19733769661`.
+- **Booking:** `business.booking` points to the shop's Vagaro page; every "Book Now" button opens it. Set it to `null` to fall back to "Call to Book".
   Set it to `{ label: 'Book Online', url: '…' }` once a real booking provider is confirmed and every CTA switches over.
-- **Services:** while `services` is empty the section shows "Ask for the current menu" with a call button.
+- **Services:** the menu and prices live in `src/data/services.ts` (copied from Vagaro). Keep it in sync when prices change; the JSON-LD offer catalog updates automatically.
   Add entries and a full menu (with optional groups, prices, durations) renders automatically.
 
 ## The living storefront hero
