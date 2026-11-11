@@ -1,7 +1,16 @@
 ---
 import { business } from '../data/business';
+import PoleField from './PoleField.astro';
 ---
-<section class="section section--bone about" id="about" aria-labelledby="about-title">
+<section class="section section--umber about" id="about" aria-labelledby="about-title">
+  <PoleField poles={[
+    { x: 91, y: 8, s: 1.35, r: 9, o: 0.42 },
+    { x: 79, y: 17, s: 0.8, r: -7, o: 0.27 },
+    { x: 2.6, y: 40, s: 0.9, r: -11, o: 0.23, sm: false },
+    { x: 96.5, y: 63, s: 0.75, r: 13, o: 0.25 },
+    { x: 31, y: 94, s: 0.8, r: 6, o: 0.23, sm: false },
+    { x: 64, y: 89, s: 1.05, r: -5, o: 0.32 },
+  ]} />
   <div class="wrap about__grid">
     <div class="about__head">
       <p class="eyebrow" data-reveal>About the studio</p>
@@ -64,7 +73,7 @@ import { business } from '../data/business';
   .about__lead { font-family: var(--serif); font-size: clamp(1.5rem, 1.2rem + 1.1vw, 2.1rem); line-height: 1.25; color: var(--text-dark); }
   .about__facts { display: grid; grid-template-columns: repeat(3, 1fr); margin-block: 1.4rem 0.6rem; border-top: 1px solid var(--line-dark); }
   .about__facts > div { padding-top: 1.2rem; padding-right: 1rem; }
-  .about__facts dt { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-lo); }
+  .about__facts dt { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold); }
   .about__facts dd { margin-top: 0.4rem; font-family: var(--serif); font-size: clamp(1.2rem, 1rem + 0.6vw, 1.5rem); line-height: 1.15; color: var(--text-dark); }
   .about__copy .link-arrow { justify-self: start; color: var(--text-dark); margin-top: 0.4rem; }
   .about__media--inset { grid-area: i; margin-top: clamp(2.5rem, 5vw, 4.5rem); aspect-ratio: 16 / 10; }

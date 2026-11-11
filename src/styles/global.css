@@ -89,8 +89,19 @@ ul, ol { padding: 0; list-style: none; }
 /* ---------- Layout ---------- */
 .wrap { width: 100%; max-width: var(--max); margin-inline: auto; padding-inline: var(--gutter); }
 .section { position: relative; padding-block: clamp(5rem, 11vw, 10rem); }
-.section--bone { background: var(--bone); color: var(--text-dark); color-scheme: light; }
 .section--paper { background: var(--paper); color: var(--text-dark); color-scheme: light; }
+/* Deep-brown sections: the light-palette tokens are remapped so components read correctly on umber. */
+.section--umber {
+  --bone: #1f1712; --paper: #261c15;
+  --text-dark: var(--text-light); --muted-dark: rgba(243, 238, 230, 0.66); --line-dark: rgba(201, 162, 94, 0.2);
+  color: var(--text-light); color-scheme: dark; isolation: isolate;
+  background:
+    radial-gradient(80% 60% at 100% 0%, rgba(201, 162, 94, 0.10), transparent 60%),
+    radial-gradient(60% 50% at 0% 100%, rgba(110, 76, 52, 0.28), transparent 70%),
+    linear-gradient(180deg, #17110d 0%, #1c1510 50%, #15100c 100%);
+  border-top: 1px solid rgba(201, 162, 94, 0.14);
+  border-bottom: 1px solid rgba(201, 162, 94, 0.14);
+}
 .section--ink2 { background: var(--ink-2); }
 
 /* ---------- Type ---------- */
@@ -100,7 +111,7 @@ ul, ol { padding: 0; list-style: none; }
   letter-spacing: 0.32em; text-transform: uppercase;
   color: var(--gold);
 }
-.section--bone .eyebrow, .section--paper .eyebrow { color: var(--gold-lo); }
+.section--paper .eyebrow { color: var(--gold-lo); }
 .eyebrow::before {
   content: ''; width: 2.25rem; height: 1px; background: currentColor; opacity: 0.8;
 }
@@ -125,14 +136,14 @@ ul, ol { padding: 0; list-style: none; }
   background: var(--gold-grad); -webkit-background-clip: text; background-clip: text;
   color: transparent;
 }
-.section--bone .gold-text, .section--paper .gold-text {
+.section--paper .gold-text {
   background: linear-gradient(100deg, #8d6a30, #b48a47 50%, #7c5c28);
   -webkit-background-clip: text; background-clip: text;
 }
 .lede { font-size: clamp(1.08rem, 1rem + 0.35vw, 1.3rem); line-height: 1.6; color: var(--muted-light); max-width: 38ch; }
-.section--bone .lede, .section--paper .lede { color: var(--muted-dark); }
+.section--paper .lede, .section--umber .lede { color: var(--muted-dark); }
 .muted { color: var(--muted-light); }
-.section--bone .muted, .section--paper .muted { color: var(--muted-dark); }
+.section--paper .muted, .section--umber .muted { color: var(--muted-dark); }
 
 /* ---------- Buttons ---------- */
 .btn {
