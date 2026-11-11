@@ -2,31 +2,44 @@
 import Icon from './Icon.astro';
 import { business } from '../data/business';
 const book = business.booking ?? { label: 'Call to Book', url: business.phone.href };
-const chapters = ['Mountain Ave', 'The front door', 'Inside', 'Studio 107'];
 ---
 <section class="hero" id="top" data-hero aria-labelledby="hero-title">
-  <!-- Cinematic stage: real photos + footage of Studio 107, sequenced exterior → door → interior. -->
+  <!--
+    Live storefront: one continuous camera move built from the real Studio 107 media.
+    The street photo and the storefront photo live in one shared "world" so the zoom never cuts;
+    the front door is a portal showing the real interior, and the camera flies through it into the footage.
+  -->
   <div class="stage" aria-hidden="true">
-    <div class="scene scene--street" data-scene="street">
-      <picture>
-        <source media="(max-width: 700px)" srcset="/media/exterior-street-sm.webp" />
-        <img src="/media/exterior-street.webp" alt="" width="2000" height="1119" fetchpriority="high" decoding="async" />
-      </picture>
+    <div class="world" data-world>
+      <div class="layer layer--street" data-street>
+        <picture>
+          <source media="(max-width: 700px)" srcset="/media/exterior-street-sm.webp" />
+          <img src="/media/exterior-street.webp" alt="" width="2000" height="1119" fetchpriority="high" decoding="async" />
+        </picture>
+      </div>
+      <div class="layer layer--front" data-front>
+        <picture>
+          <source media="(max-width: 700px)" srcset="/media/storefront-sm.webp" />
+          <img src="/media/storefront.webp" alt="" width="2000" height="1278" decoding="async" />
+        </picture>
+        <div class="portal" data-portal>
+          <img class="portal__inside" data-portal-inside src="/media/portal-interior.webp" alt="" width="816" height="1016" decoding="async" />
+          <div class="portal__glass" data-portal-glass></div>
+        </div>
+      </div>
     </div>
-    <div class="scene scene--front" data-scene="front">
-      <picture>
-        <source media="(max-width: 700px)" srcset="/media/storefront-sm.webp" />
-        <img src="/media/storefront.webp" alt="" width="2000" height="1278" decoding="async" />
-      </picture>
-    </div>
-    <div class="scene scene--still" data-scene="still">
-      <img src="/media/interior-wide.webp" alt="" width="1096" height="1268" loading="lazy" decoding="async" />
-    </div>
-    <video class="scene scene--video" data-scene="reveal" muted playsinline preload="auto" disablepictureinpicture
-      poster="/media/reveal-poster.webp" src="/media/interior-reveal.mp4"></video>
-    <video class="scene scene--video" data-scene="ambient" muted playsinline loop preload="none" disablepictureinpicture
+
+    <img class="scene scene--still" data-still src="/media/interior-wide.webp" alt="" width="1096" height="1268" loading="lazy" decoding="async" />
+    <video class="scene scene--video" data-reveal muted playsinline preload="auto" disablepictureinpicture
+      poster="/media/portal-interior.webp" src="/media/interior-reveal.mp4"></video>
+    <video class="scene scene--video" data-ambient muted playsinline loop preload="none" disablepictureinpicture
       data-src="/media/interior-ambient.mp4"></video>
-    <div class="stage__flash" data-flash></div>
+
+    <div class="wall-logo" data-wall-logo>
+      <span class="wall-logo__mark">Studio 107</span>
+      <span class="wall-logo__sub">Barbershop</span>
+    </div>
+
     <div class="stage__shade"></div>
     <div class="stage__grain"></div>
   </div>
@@ -52,29 +65,16 @@ const chapters = ['Mountain Ave', 'The front door', 'Inside', 'Studio 107'];
     </p>
   </div>
 
-  <div class="hero__film" data-hero-in style="--d:1.6s">
-    <ol class="chapters" aria-hidden="true">
-      {chapters.map((c, i) => (
-        <li class="chapter" data-chapter={i}>
-          <span class="chapter__num">0{i + 1}</span>
-          <span class="chapter__label">{c}</span>
-          <span class="chapter__bar"><i></i></span>
-        </li>
-      ))}
-    </ol>
-    <div class="film-controls">
-      <button type="button" class="film-btn" data-film-toggle aria-label="Pause background film">
-        <Icon name="pause" class="i-pause" /><Icon name="play" class="i-play" />
-      </button>
-      <button type="button" class="film-btn" data-film-replay aria-label="Replay the arrival">
-        <Icon name="replay" />
-      </button>
-    </div>
+  <div class="film-controls" data-hero-in style="--d:1.6s">
+    <button type="button" class="film-btn" data-film-toggle aria-label="Pause background film">
+      <Icon name="pause" class="i-pause" /><Icon name="play" class="i-play" />
+    </button>
+    <button type="button" class="film-btn" data-film-replay aria-label="Replay the walk-in">
+      <Icon name="replay" />
+    </button>
   </div>
 
-  <a href="#intro" class="hero__scroll" aria-label="Scroll to learn more">
-    <span>Scroll</span><i></i>
-  </a>
+  <a href="#intro" class="hero__scroll" aria-label="Scroll to learn more"><span>Scroll</span><i></i></a>
 </section>
 
 <style>
@@ -84,37 +84,59 @@ const chapters = ['Mountain Ave', 'The front door', 'Inside', 'Studio 107'];
   }
 
   /* ---------- Stage ---------- */
-  .stage { position: absolute; inset: 0; z-index: -1; overflow: hidden; background: #0a0908; }
-  .scene { position: absolute; inset: 0; opacity: 0; will-change: transform, opacity; }
-  .scene picture, .scene img, .scene--video { width: 100%; height: 100%; }
-  .scene img, .scene--video { object-fit: cover; }
+  .stage { position: absolute; inset: 0; z-index: -1; overflow: hidden; background: #0a0908; contain: strict; }
+  .world { position: absolute; inset: 0; }
+  .layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; backface-visibility: hidden; }
+  .layer picture, .layer > picture img { display: block; width: 100%; height: 100%; }
+  .layer--street { width: 2000px; height: 1119px; }
+  .layer--front {
+    width: 2000px; height: 1278px; opacity: 0;
+    /* Feathered edges so the close-up melts into the street shot during the zoom. */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%), linear-gradient(180deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%), linear-gradient(180deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+    mask-composite: intersect;
+  }
+  .layer--front.is-solid { -webkit-mask-image: none; mask-image: none; }
 
-  /* Focal points: object-position and transform-origin match, so zooms push toward
-     the real storefront and front door rather than the centre of the frame. */
-  .scene--street { --fx: 38.5%; --fy: 54%; opacity: 1; }
-  .scene--front { --fx: 75.5%; --fy: 69%; }
-  .scene--street img, .scene--front img { object-position: var(--fx) var(--fy); }
-  .scene--street, .scene--front { transform-origin: var(--fx) var(--fy); }
-  .scene--still img { object-position: 50% 45%; }
-  .scene--video { object-position: 50% 38%; transform-origin: 50% 42%; }
-
-  @media (max-width: 700px) {
-    .scene--street { --fx: 43%; --fy: 56%; }
-    /* On a phone the frame is portrait: keep the sign and window in view and push toward the window. */
-    .scene--front { --fx: 30%; --fy: 58%; }
-    .scene--video { object-position: 50% 30%; }
+  /* The front door's glass, in storefront-photo pixels. */
+  .portal { position: absolute; left: 1345px; top: 643px; width: 337px; height: 635px; overflow: hidden; background: #1a1714; }
+  .portal__inside { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; transform-origin: 50% 45%; }
+  .portal__glass {
+    position: absolute; inset: 0; pointer-events: none;
+    background: url('/media/storefront.webp') -1345px -643px / 2000px 1278px no-repeat;
+    opacity: 0.6; mix-blend-mode: screen;
   }
 
-  .stage__flash { position: absolute; inset: 0; background: radial-gradient(ellipse at 60% 55%, #fff6e6 0%, #f3e6cc 45%, rgba(243, 230, 204, 0) 80%); opacity: 0; pointer-events: none; mix-blend-mode: screen; }
+  .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+  .scene--video { object-position: 50% 45%; transform-origin: 50% 45%; }
+  .scene--still { object-position: 50% 45%; }
+
+  .wall-logo {
+    position: absolute; left: 70%; top: 24%; transform: translate(-50%, -50%);
+    display: grid; justify-items: center; pointer-events: none; opacity: 0;
+    filter: drop-shadow(0 6px 30px rgba(0, 0, 0, 0.45));
+  }
+  .wall-logo__mark {
+    font-family: var(--serif); font-style: italic; font-size: clamp(3rem, 2rem + 4.6vw, 7.5rem); line-height: 0.9; padding: 0 0.1em; white-space: nowrap;
+    background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .wall-logo__sub { margin-top: 0.4em; font-size: clamp(0.62rem, 0.5rem + 0.4vw, 0.95rem); font-weight: 600; letter-spacing: 0.6em; padding-left: 0.6em; text-transform: uppercase; color: #f6efe2; }
+  .wall-logo.is-in { animation: wall-in 2.2s var(--ease-out) forwards; }
+  @keyframes wall-in {
+    from { opacity: 0; filter: blur(14px) drop-shadow(0 6px 30px rgba(0, 0, 0, 0.45)); letter-spacing: 0.04em; }
+    to { opacity: 1; filter: blur(0) drop-shadow(0 6px 30px rgba(0, 0, 0, 0.45)); }
+  }
+
   .stage__shade {
     position: absolute; inset: 0; pointer-events: none;
     background:
-      linear-gradient(180deg, rgba(10, 9, 8, 0.6) 0%, rgba(10, 9, 8, 0) 22%),
-      linear-gradient(0deg, rgba(10, 9, 8, 0.92) 0%, rgba(10, 9, 8, 0.55) 34%, rgba(10, 9, 8, 0.08) 62%),
-      linear-gradient(90deg, rgba(10, 9, 8, 0.55) 0%, rgba(10, 9, 8, 0) 55%);
+      linear-gradient(180deg, rgba(10, 9, 8, 0.55) 0%, rgba(10, 9, 8, 0) 18%),
+      linear-gradient(0deg, rgba(10, 9, 8, 0.88) 0%, rgba(10, 9, 8, 0.4) 30%, rgba(10, 9, 8, 0) 55%),
+      linear-gradient(90deg, rgba(10, 9, 8, 0.5) 0%, rgba(10, 9, 8, 0) 48%);
   }
   .stage__grain {
-    position: absolute; inset: -50%; pointer-events: none; opacity: 0.09; mix-blend-mode: overlay;
+    position: absolute; inset: -50%; pointer-events: none; opacity: 0.08; mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     animation: grain 1.2s steps(6) infinite;
   }
@@ -124,85 +146,63 @@ const chapters = ['Mountain Ave', 'The front door', 'Inside', 'Studio 107'];
   }
 
   /* ---------- Content ---------- */
-  .hero__content { position: relative; padding-top: calc(var(--nav-h) + 3rem); padding-bottom: clamp(7.5rem, 15vh, 10rem); }
-  .hero__title { display: grid; gap: 1.4rem; font-weight: 400; }
+  .hero__content { position: relative; padding-top: calc(var(--nav-h) + 3rem); padding-bottom: clamp(6rem, 13vh, 8.5rem); }
+  .hero__title { display: grid; gap: 1.2rem; font-weight: 400; }
   .hero__kicker {
     display: inline-flex; align-items: center; gap: 0.85rem;
-    font-family: var(--sans); font-size: 0.72rem; font-weight: 650; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold-hi);
+    font-family: var(--sans); font-size: 0.7rem; font-weight: 650; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold-hi);
   }
   .hero__kicker::before { content: ''; width: 2.25rem; height: 1px; background: currentColor; }
-  .hero__title .display { font-size: clamp(3.3rem, 1.6rem + 7.4vw, 8.4rem); line-height: 0.92; text-shadow: 0 2px 40px rgba(0, 0, 0, 0.35); }
+  .hero__title .display { font-size: clamp(3rem, 1.5rem + 5.6vw, 6.6rem); line-height: 0.92; text-shadow: 0 2px 40px rgba(0, 0, 0, 0.4); }
   .hero__title .gold-text { padding-right: 0.06em; }
-  .hero__sub { margin-top: 1.6rem; max-width: 34ch; font-size: clamp(1.05rem, 0.98rem + 0.35vw, 1.28rem); color: rgba(243, 238, 230, 0.86); line-height: 1.55; }
-  .hero__ctas { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: 0.9rem; }
-  .hero__explore { --bd: rgba(243, 238, 230, 0.4); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(13, 12, 11, 0.2); }
-  .hero__status { margin-top: 1.6rem; display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; font-weight: 550; color: rgba(243, 238, 230, 0.8); letter-spacing: 0.02em; }
+  .hero__sub { margin-top: 1.3rem; max-width: 34ch; font-size: clamp(1rem, 0.96rem + 0.3vw, 1.18rem); color: rgba(243, 238, 230, 0.88); line-height: 1.55; text-shadow: 0 1px 20px rgba(0, 0, 0, 0.5); }
+  .hero__ctas { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 0.9rem; }
+  .hero__explore { --bd: rgba(243, 238, 230, 0.45); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(13, 12, 11, 0.25); }
+  .hero__status { margin-top: 1.4rem; display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; font-weight: 550; color: rgba(243, 238, 230, 0.85); letter-spacing: 0.02em; }
 
-  /* Entrance */
   .js [data-hero-in] { opacity: 0; transform: translateY(18px); transition: opacity 1.2s var(--ease-out) var(--d), transform 1.2s var(--ease-out) var(--d); }
   .js [data-hero-line] { display: block; transform: translateY(108%); transition: transform 1.4s var(--ease-out) var(--d); }
   .js .hero.is-ready [data-hero-in] { opacity: 1; transform: none; }
   .js .hero.is-ready [data-hero-line] { transform: none; }
 
-  /* ---------- Film chapters ---------- */
-  .hero__film {
-    position: absolute; right: var(--gutter); bottom: clamp(2rem, 5vh, 3rem); z-index: 2;
-    display: flex; align-items: flex-end; gap: 1.5rem;
-  }
-  .chapters { display: flex; gap: 1.25rem; }
-  .chapter { width: 7.5rem; display: grid; gap: 0.45rem; color: rgba(243, 238, 230, 0.45); transition: color 0.6s; }
-  .chapter.is-active, .chapter.is-done { color: rgba(243, 238, 230, 0.95); }
-  .chapter__num { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.2em; color: var(--gold); }
-  .chapter__label { font-family: var(--serif); font-style: italic; font-size: 1.02rem; line-height: 1; white-space: nowrap; }
-  .chapter__bar { height: 1px; background: rgba(243, 238, 230, 0.22); overflow: hidden; }
-  .chapter__bar i { display: block; height: 100%; background: var(--gold-hi); transform: scaleX(var(--p, 0)); transform-origin: left; }
-  .film-controls { display: flex; gap: 0.5rem; }
+  .film-controls { position: absolute; right: var(--gutter); bottom: clamp(1.6rem, 4vh, 2.6rem); z-index: 2; display: flex; gap: 0.5rem; }
   .film-btn {
-    width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
+    width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%;
     border: 1px solid rgba(243, 238, 230, 0.3); color: var(--text-light);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(13, 12, 11, 0.25);
-    transition: border-color 0.3s, background 0.3s, color 0.3s;
+    transition: border-color 0.3s, color 0.3s;
   }
   .film-btn:hover { border-color: var(--gold-hi); color: var(--gold-hi); }
-  .film-btn :global(svg) { width: 16px; height: 16px; }
+  .film-btn :global(svg) { width: 15px; height: 15px; }
   .film-btn :global(.i-play) { display: none; }
   .hero.is-paused .film-btn :global(.i-play) { display: block; }
   .hero.is-paused .film-btn :global(.i-pause) { display: none; }
-  .hero.no-film .chapters, .hero.no-film .film-controls { display: none; }
+  .hero.no-film .film-controls { display: none; }
 
   .hero__scroll {
-    position: absolute; left: var(--gutter); bottom: clamp(2rem, 5vh, 3rem); z-index: 2;
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: clamp(1.6rem, 4vh, 2.6rem); z-index: 2;
     display: flex; align-items: center; gap: 0.9rem;
     font-size: 0.6rem; letter-spacing: 0.34em; text-transform: uppercase; color: rgba(243, 238, 230, 0.6);
   }
   .hero__scroll i { width: 42px; height: 1px; background: linear-gradient(90deg, rgba(243, 238, 230, 0.7), transparent); transform-origin: left; animation: scrollcue 2.4s var(--ease-inout) infinite; }
   @keyframes scrollcue { 0% { transform: scaleX(0); } 45% { transform: scaleX(1); transform-origin: left; } 55% { transform: scaleX(1); transform-origin: right; } 100% { transform: scaleX(0); transform-origin: right; } }
 
-  @media (max-width: 1100px) {
-    .chapter { width: 6rem; }
-    .chapter__label { font-size: 0.92rem; }
-    .hero__scroll { display: none; }
-  }
+  @media (max-width: 1100px) { .hero__scroll { display: none; } }
   @media (max-width: 760px) {
-    .hero { align-items: flex-end; }
-    .hero__kicker { font-size: 0.66rem; letter-spacing: 0.26em; }
+    .hero__content { padding-bottom: 5.5rem; }
+    .hero__kicker { font-size: 0.64rem; letter-spacing: 0.26em; }
     .hero__kicker::before { width: 1.5rem; }
-    .hero__content { padding-bottom: 7.25rem; }
-    .hero__film { left: var(--gutter); right: var(--gutter); bottom: 1.4rem; justify-content: space-between; align-items: center; }
-    .chapters { gap: 0.5rem; flex: 1; }
-    .chapter { width: auto; flex: 1; }
-    .chapter__label { display: none; }
-    .chapter.is-active .chapter__label { display: none; }
     .hero__ctas .btn { flex: 1 1 100%; }
+    .film-controls { bottom: 1.25rem; }
+    .wall-logo { left: 50%; top: 22%; }
+    .wall-logo__mark { font-size: 3.4rem; }
     .stage__shade {
       background:
-        linear-gradient(180deg, rgba(10, 9, 8, 0.65) 0%, rgba(10, 9, 8, 0) 20%),
-        linear-gradient(0deg, rgba(10, 9, 8, 0.95) 0%, rgba(10, 9, 8, 0.7) 42%, rgba(10, 9, 8, 0.1) 72%);
+        linear-gradient(180deg, rgba(10, 9, 8, 0.6) 0%, rgba(10, 9, 8, 0) 16%),
+        linear-gradient(0deg, rgba(10, 9, 8, 0.95) 0%, rgba(10, 9, 8, 0.65) 40%, rgba(10, 9, 8, 0) 66%);
     }
   }
-  @media (max-width: 760px) and (max-height: 700px) {
-    .hero__sub { display: none; }
-  }
+  @media (max-width: 760px) and (max-height: 700px) { .hero__sub { display: none; } }
 </style>
 
 <script>

@@ -34,18 +34,20 @@ The build is plain static HTML/CSS/JS in `dist/`, so it runs on any static host.
 - **Services:** while `services` is empty the section shows "Ask for the current menu" with a call button.
   Add entries and a full menu (with optional groups, prices, durations) renders automatically.
 
-## The cinematic hero
+## The live storefront hero
 
-Sequenced from the real media, in order:
+One continuous camera move, built only from the real Studio 107 media (`src/scripts/hero-film.ts`):
 
-1. `exterior-street.webp`: street-level view of 265 Mountain Ave, slow push toward the storefront
-2. `storefront.webp`: close storefront shot, accelerating push into the front door
-3. A warm light bloom, then `interior-reveal.mp4`: real interior footage pulling back to reveal the floor
-4. `interior-ambient.mp4`: seamless ping-pong loop of the same footage, which picks up exactly where the reveal ends
+1. Opens on the street-level photo of 265 Mountain Ave.
+2. The close-up storefront photo sits inside the street photo exactly over the shop's facade, so the camera
+   zooms from the street onto the sign with no cut.
+3. The front door's glass is a portal showing the real interior. Reflections fade and the room gains depth as the camera flies through.
+4. The interior footage takes over and pulls back to reveal the floor, then settles into a seamless ambient loop,
+   and the Studio 107 logo appears on the wall.
 
-No footage physically passes through the door, so the door → interior moment is a light-bloom transition, not a fake camera move.
-Visitors can pause or replay the film. Reduced-motion and data-saver users get a still interior photo.
-If autoplay is blocked (e.g. iOS Low Power Mode) the sequence falls back to the interior photo.
+Photo alignment values (`FRONT`, `GLASS`) are measured in photo pixels at the top of the script. If you replace
+`storefront.webp` or `exterior-street.webp`, re-measure them. Visitors can pause or replay; reduced-motion
+and data-saver users get a still interior photo with the logo.
 
 ## Media notes (before launch)
 
