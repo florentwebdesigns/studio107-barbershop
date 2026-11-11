@@ -1,0 +1,138 @@
+---
+import Icon from './Icon.astro';
+import { gallery } from '../data/gallery';
+---
+<section class="section gallery" id="gallery" aria-labelledby="gallery-title">
+  <div class="wrap">
+    <header class="gallery__head">
+      <p class="eyebrow" data-reveal>Gallery</p>
+      <h2 class="h2" id="gallery-title" data-reveal="lines">
+        <span class="line"><span>Inside <em class="gold-text">the studio.</em></span></span>
+      </h2>
+      <p class="lede" data-reveal style="--d:0.1s">The real shop on Mountain Ave. Tap any frame to look closer.</p>
+    </header>
+
+    <ul class="g-grid">
+      {gallery.map((item, i) => (
+        <li class={`g-item g-item--${i + 1}`} data-reveal="mask" style={`--d:${(i % 3) * 0.08}s`}>
+          <button type="button" class="g-btn" data-lightbox-open={i} aria-label={`View larger: ${item.caption}`}>
+            <img src={item.thumb ?? item.src} alt={item.alt} width={item.width} height={item.height} loading="lazy" decoding="async" />
+            {item.video && (
+              <video class="g-video" muted loop playsinline preload="none" data-hover-video={item.video} aria-hidden="true"></video>
+            )}
+            <span class="g-cap">
+              <span class="g-cap__num">{String(i + 1).padStart(2, '0')}</span>
+              <span class="g-cap__text">{item.caption}</span>
+              <Icon name={item.video ? 'play' : 'expand'} class="g-cap__icon" />
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<dialog class="lightbox" data-lightbox aria-label="Gallery viewer">
+  <div class="lightbox__top">
+    <span class="lightbox__count" data-lb-count></span>
+    <button type="button" class="lightbox__btn" data-lb-close aria-label="Close viewer"><Icon name="close" /></button>
+  </div>
+  <figure class="lightbox__stage" data-lb-stage>
+    <div class="lightbox__media" data-lb-media></div>
+    <figcaption class="lightbox__cap" data-lb-cap></figcaption>
+  </figure>
+  <button type="button" class="lightbox__btn lightbox__nav lightbox__nav--prev" data-lb-prev aria-label="Previous"><Icon name="prev" /></button>
+  <button type="button" class="lightbox__btn lightbox__nav lightbox__nav--next" data-lb-next aria-label="Next"><Icon name="next" /></button>
+</dialog>
+
+<script type="application/json" id="gallery-data" set:html={JSON.stringify(gallery)} />
+
+<style>
+  .gallery { background: var(--ink); }
+  .gallery__head { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 1.6rem 4rem; margin-bottom: clamp(2.5rem, 5vw, 4.5rem); }
+  .gallery__head .eyebrow { grid-column: 1 / -1; }
+  .gallery__head .lede { justify-self: end; text-align: right; max-width: 30ch; }
+
+  .g-grid {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: clamp(48px, 6.4vw, 92px); gap: clamp(0.6rem, 1.2vw, 1.1rem);
+  }
+  .g-item { position: relative; overflow: hidden; background: var(--ink-3); }
+  .g-item--1 { grid-column: 1 / 6; grid-row: 1 / 9; }
+  .g-item--2 { grid-column: 6 / 13; grid-row: 1 / 5; }
+  .g-item--3 { grid-column: 6 / 9; grid-row: 5 / 12; }
+  .g-item--4 { grid-column: 9 / 13; grid-row: 5 / 8; }
+  .g-item--5 { grid-column: 9 / 13; grid-row: 8 / 12; }
+  .g-item--6 { grid-column: 1 / 6; grid-row: 9 / 12; }
+  .g-item:nth-child(n + 7) { grid-column: span 4; grid-row: span 4; }
+
+  .g-btn { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: hidden; cursor: zoom-in; }
+  .g-btn img, .g-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1.4s var(--ease-out), filter 0.8s; }
+  .g-item--1 img { object-position: 50% 60%; }
+  .g-item--2 img { object-position: 50% 40%; }
+  .g-item--6 img { object-position: 42% 55%; }
+  .g-video { opacity: 0; transition: opacity 0.6s, transform 1.4s var(--ease-out); }
+  .g-btn:hover .g-video.is-playing { opacity: 1; }
+  .g-btn:hover img, .g-btn:hover .g-video, .g-btn:focus-visible img { transform: scale(1.045); }
+  .g-btn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10, 9, 8, 0.75), rgba(10, 9, 8, 0) 45%); opacity: 0.85; transition: opacity 0.5s; }
+  .g-btn:hover::after { opacity: 1; }
+  .g-btn:focus-visible { outline-offset: -3px; }
+  .g-cap {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; display: flex; align-items: center; gap: 0.8rem;
+    padding: clamp(0.8rem, 1.6vw, 1.25rem); text-align: left;
+  }
+  .g-cap__num { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.2em; color: var(--gold); }
+  .g-cap__text { flex: 1; font-family: var(--serif); font-style: italic; font-size: clamp(1rem, 0.9rem + 0.4vw, 1.25rem); line-height: 1.15; transform: translateY(6px); opacity: 0.85; transition: transform 0.6s var(--ease-out), opacity 0.6s; }
+  .g-btn:hover .g-cap__text { transform: none; opacity: 1; }
+  .g-cap :global(.g-cap__icon) { width: 30px; height: 30px; padding: 8px; border-radius: 50%; border: 1px solid rgba(243, 238, 230, 0.4); flex: none; opacity: 0; transform: scale(0.8); transition: opacity 0.5s, transform 0.5s var(--ease-out); }
+  .g-btn:hover :global(.g-cap__icon), .g-btn:focus-visible :global(.g-cap__icon) { opacity: 1; transform: none; }
+
+  @media (hover: none) {
+    .g-cap :global(.g-cap__icon) { opacity: 1; transform: none; }
+    .g-cap__text { transform: none; opacity: 1; }
+  }
+
+  @media (max-width: 800px) {
+    .gallery__head { grid-template-columns: 1fr; }
+    .gallery__head .lede { justify-self: start; text-align: left; }
+    .g-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 15vw; }
+    .g-item--1 { grid-column: 1 / 7; grid-row: span 7; }
+    .g-item--2 { grid-column: 1 / 7; grid-row: span 4; }
+    .g-item--3 { grid-column: 1 / 4; grid-row: span 5; }
+    .g-item--4 { grid-column: 4 / 7; grid-row: span 5; }
+    .g-item--5 { grid-column: 1 / 4; grid-row: span 3; }
+    .g-item--6 { grid-column: 4 / 7; grid-row: span 3; }
+    .g-item:nth-child(n + 7) { grid-column: span 3; grid-row: span 4; }
+  }
+
+  /* ---------- Lightbox ---------- */
+  .lightbox {
+    width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+    background: rgba(8, 7, 6, 0.97); color: var(--text-light); overflow: hidden;
+  }
+  .lightbox::backdrop { background: rgba(8, 7, 6, 0.85); }
+  .lightbox[open] { display: grid; grid-template-rows: auto 1fr; animation: lb-in 0.5s var(--ease-out); }
+  @keyframes lb-in { from { opacity: 0; } to { opacity: 1; } }
+  .lightbox__top { display: flex; justify-content: space-between; align-items: center; padding: 1rem var(--gutter); }
+  .lightbox__count { font-size: 0.72rem; letter-spacing: 0.24em; font-weight: 700; color: var(--gold); }
+  .lightbox__stage { display: grid; grid-template-rows: 1fr auto; gap: 1rem; min-height: 0; padding: 0 clamp(1rem, 7vw, 7rem) clamp(1.25rem, 3vw, 2.5rem); }
+  .lightbox__media { min-height: 0; display: grid; place-items: center; }
+  .lightbox__media :global(img), .lightbox__media :global(video) { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; animation: lb-img 0.7s var(--ease-out); }
+  @keyframes lb-img { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+  .lightbox__cap { text-align: center; font-family: var(--serif); font-style: italic; font-size: 1.25rem; color: rgba(243, 238, 230, 0.85); }
+  .lightbox__btn { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(243, 238, 230, 0.25); transition: border-color 0.3s, color 0.3s, background 0.3s; background: rgba(13, 12, 11, 0.5); }
+  .lightbox__btn:hover { border-color: var(--gold-hi); color: var(--gold-hi); }
+  .lightbox__btn :global(svg) { width: 20px; height: 20px; }
+  .lightbox__nav { position: absolute; top: 50%; transform: translateY(-50%); }
+  .lightbox__nav--prev { left: clamp(0.5rem, 2vw, 2rem); }
+  .lightbox__nav--next { right: clamp(0.5rem, 2vw, 2rem); }
+  @media (max-width: 700px) {
+    .lightbox__nav { top: auto; bottom: 1rem; transform: none; }
+    .lightbox__stage { padding-bottom: 5rem; }
+  }
+</style>
+
+<script>
+  import { initGallery } from '../scripts/gallery';
+  initGallery();
+</script>

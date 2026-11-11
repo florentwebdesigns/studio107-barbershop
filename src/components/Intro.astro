@@ -1,0 +1,40 @@
+---
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+---
+<!-- Quick-glance strip directly under the film: the three things a phone visitor wants. -->
+<section class="intro" id="intro" aria-label="Quick info">
+  <div class="intro__grid wrap">
+    <a class="intro__item" href={business.phone.href}>
+      <span class="intro__label"><Icon name="phone" /> Call the shop</span>
+      <span class="intro__value">{business.phone.display}</span>
+    </a>
+    <a class="intro__item" href={business.mapsUrl} target="_blank" rel="noopener">
+      <span class="intro__label"><Icon name="pin" /> Find us</span>
+      <span class="intro__value">{business.address.street}, {business.address.city}</span>
+    </a>
+    <a class="intro__item" href="#visit">
+      <span class="intro__label"><Icon name="clock" /> Today</span>
+      <span class="intro__value"><span class="status-dot" data-open-dot></span><span data-open-short>See hours</span></span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .intro { background: var(--ink); border-bottom: 1px solid var(--line-light); }
+  .intro__grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .intro__item {
+    position: relative; display: grid; gap: 0.35rem; padding: 1.8rem 1.5rem 1.8rem 0;
+    transition: background 0.4s;
+  }
+  .intro__item + .intro__item { padding-left: 1.75rem; border-left: 1px solid var(--line-light); }
+  .intro__label { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold); }
+  .intro__label :global(svg) { width: 14px; height: 14px; }
+  .intro__value { display: inline-flex; align-items: center; gap: 0.55rem; font-family: var(--serif); font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.7rem); line-height: 1.15; transition: color 0.3s; }
+  .intro__item:hover .intro__value { color: var(--gold-hi); }
+  @media (max-width: 760px) {
+    .intro__grid { grid-template-columns: 1fr; }
+    .intro__item { padding: 1.2rem 0; }
+    .intro__item + .intro__item { padding-left: 0; border-left: 0; border-top: 1px solid var(--line-light); }
+  }
+</style>

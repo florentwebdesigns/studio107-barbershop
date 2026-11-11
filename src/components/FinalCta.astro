@@ -1,0 +1,40 @@
+---
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+---
+<section class="final" aria-labelledby="final-title">
+  <div class="final__bg" aria-hidden="true" data-parallax="0.12">
+    <img src="/media/storefront.webp" alt="" width="2000" height="1278" loading="lazy" decoding="async" />
+  </div>
+  <div class="wrap final__inner">
+    <p class="eyebrow eyebrow--plain" data-reveal>Studio 107 · Springfield, NJ</p>
+    <h2 class="final__title" id="final-title" data-reveal="lines">
+      <span class="line"><span>Your next cut</span></span>
+      <span class="line"><span><em class="gold-text">starts here.</em></span></span>
+    </h2>
+    <p class="final__sub" data-reveal style="--d:0.1s">Call ahead to book, or stop by the shop at {business.address.street}.</p>
+    <div class="final__ctas" data-reveal style="--d:0.2s">
+      <a class="btn btn--gold btn--lg final__call" href={business.phone.href}>
+        <Icon name="phone" /> Call Studio 107 <span class="final__dash">—</span> {business.phone.display}
+      </a>
+      <a class="link-arrow" href={business.mapsUrl} target="_blank" rel="noopener">Get directions <Icon name="arrow-up-right" /></a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .final { position: relative; overflow: hidden; isolation: isolate; padding-block: clamp(7rem, 16vw, 13rem); text-align: center; background: var(--ink); }
+  .final__bg { position: absolute; inset: -12% 0; z-index: -1; }
+  .final__bg img { width: 100%; height: 100%; object-fit: cover; object-position: 40% 35%; filter: grayscale(0.25) brightness(0.42) contrast(1.05); }
+  .final::after { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(ellipse at center, rgba(10, 9, 8, 0.35), rgba(10, 9, 8, 0.85) 75%); }
+  .final__inner { display: grid; justify-items: center; gap: 1.6rem; }
+  .final__title { font-family: var(--serif); font-weight: 400; font-size: clamp(3rem, 1.6rem + 6.4vw, 7.6rem); line-height: 0.95; letter-spacing: -0.015em; }
+  .final__sub { color: rgba(243, 238, 230, 0.8); font-size: 1.1rem; max-width: 40ch; }
+  .final__ctas { display: grid; justify-items: center; gap: 1.6rem; margin-top: 1rem; }
+  .final__call { white-space: normal; text-align: center; }
+  @media (max-width: 520px) {
+    .final__ctas, .final__call { width: 100%; }
+    .final__dash { display: none; }
+    .final__call { flex-wrap: wrap; column-gap: 0.5rem; }
+  }
+</style>

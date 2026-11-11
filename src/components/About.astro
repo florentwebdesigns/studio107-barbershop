@@ -1,0 +1,88 @@
+---
+import { business } from '../data/business';
+---
+<section class="section section--bone about" id="about" aria-labelledby="about-title">
+  <div class="wrap about__grid">
+    <div class="about__head">
+      <p class="eyebrow" data-reveal>About the studio</p>
+      <h2 class="h2 about__title" id="about-title" data-reveal="lines">
+        <span class="line"><span>A neighborhood</span></span>
+        <span class="line"><span>barbershop, built</span></span>
+        <span class="line"><span>around <em class="gold-text">the details.</em></span></span>
+      </h2>
+    </div>
+
+    <figure class="about__media about__media--main" data-reveal="mask" data-parallax="0.06">
+      <img src="/media/interior-wide.webp" srcset="/media/interior-wide-sm.webp 600w, /media/interior-wide.webp 1096w" sizes="(max-width: 900px) 100vw, 45vw"
+        alt="The Studio 107 floor: classic black barber chairs facing white-framed mirrors on a reclaimed-wood wall" width="1096" height="1268" loading="lazy" decoding="async" />
+    </figure>
+
+    <div class="about__copy">
+      <p class="about__lead" data-reveal>
+        Step off Mountain Ave and into a bright, open room: reclaimed-wood walls, white-framed mirrors and a row of classic barber chairs ready for the next cut.
+      </p>
+      <p data-reveal style="--d:0.1s">
+        {business.name} is a professional barbershop for men’s haircuts and grooming in Springfield, New Jersey. The idea is simple: a clean, comfortable shop and a cut you’re glad you walked in for.
+      </p>
+      <p data-reveal style="--d:0.15s">
+        Look for the black-and-gold sign and the barber pole at {business.address.street}. We’re open six days a week, with early Saturday hours.
+      </p>
+
+      <dl class="about__facts">
+        <div data-reveal style="--d:0.05s"><dt>Location</dt><dd>{business.address.street}</dd></div>
+        <div data-reveal style="--d:0.12s"><dt>Open</dt><dd>6 days a week</dd></div>
+        <div data-reveal style="--d:0.19s"><dt>Saturdays</dt><dd>From 8 AM</dd></div>
+      </dl>
+
+      <a class="link-arrow" href="#gallery" data-reveal style="--d:0.2s">See inside the shop
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16M14 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <figure class="about__media about__media--inset" data-reveal="mask" style="--d:0.2s" data-parallax="-0.08">
+      <img src="/media/storefront-sm.webp" alt="The Studio 107 Barbershop sign and front window on Mountain Ave" width="1000" height="639" loading="lazy" decoding="async" />
+      <figcaption>The sign out front, {business.address.street}</figcaption>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .about { overflow: hidden; }
+  .about__grid {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: clamp(1rem, 2vw, 2rem);
+    grid-template-areas:
+      'h h h h h h h . . . . .'
+      'm m m m m . c c c c c c'
+      'm m m m m . i i i i . .';
+  }
+  .about__head { grid-area: h; margin-bottom: clamp(3rem, 6vw, 5.5rem); display: grid; gap: 1.6rem; }
+  .about__title { max-width: 14ch; }
+  .about__media { overflow: hidden; position: relative; }
+  .about__media img { width: 100%; height: 100%; object-fit: cover; }
+  .about__media--main { grid-area: m; aspect-ratio: 4 / 5; align-self: start; }
+  .about__copy { grid-area: c; display: grid; gap: 1.4rem; align-content: start; color: var(--muted-dark); max-width: 36rem; }
+  .about__lead { font-family: var(--serif); font-size: clamp(1.5rem, 1.2rem + 1.1vw, 2.1rem); line-height: 1.25; color: var(--text-dark); }
+  .about__facts { display: grid; grid-template-columns: repeat(3, 1fr); margin-block: 1.4rem 0.6rem; border-top: 1px solid var(--line-dark); }
+  .about__facts > div { padding-top: 1.2rem; padding-right: 1rem; }
+  .about__facts dt { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-lo); }
+  .about__facts dd { margin-top: 0.4rem; font-family: var(--serif); font-size: clamp(1.2rem, 1rem + 0.6vw, 1.5rem); line-height: 1.15; color: var(--text-dark); }
+  .about__copy .link-arrow { justify-self: start; color: var(--text-dark); margin-top: 0.4rem; }
+  .about__media--inset { grid-area: i; margin-top: clamp(2.5rem, 5vw, 4.5rem); aspect-ratio: 16 / 10; }
+  .about__media--inset figcaption {
+    position: absolute; left: 0; bottom: 0; padding: 0.6rem 0.9rem; background: var(--bone);
+    font-size: 0.64rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 650; color: var(--muted-dark);
+  }
+
+  @media (max-width: 900px) {
+    .about__grid {
+      grid-template-columns: 1fr;
+      grid-template-areas: 'h' 'm' 'c' 'i';
+    }
+    .about__media--main { aspect-ratio: 4 / 4.6; margin-bottom: 2.5rem; }
+    .about__media--inset { width: 78%; justify-self: end; }
+  }
+  @media (max-width: 480px) {
+    .about__facts { grid-template-columns: 1fr 1fr; }
+    .about__facts > div:last-child { grid-column: span 2; }
+  }
+</style>

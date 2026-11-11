@@ -1,0 +1,136 @@
+---
+import Icon from './Icon.astro';
+import { services } from '../data/services';
+import { business, hoursMondayFirst, formatRange } from '../data/business';
+
+const hasMenu = services.length > 0;
+const groups = hasMenu
+  ? Array.from(
+      services.reduce((m, s) => {
+        const g = s.group ?? 'Services';
+        if (!m.has(g)) m.set(g, []);
+        m.get(g)!.push(s);
+        return m;
+      }, new Map<string, typeof services>()),
+    )
+  : [];
+const book = business.booking ?? { label: 'Call to Book', url: business.phone.href };
+---
+<section class="section services" id="services" aria-labelledby="services-title">
+  <div class="services__bg" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="services__head">
+      <div>
+        <p class="eyebrow" data-reveal>Services</p>
+        <h2 class="h2" id="services-title" data-reveal="lines">
+          <span class="line"><span>The cut, and</span></span>
+          <span class="line"><span><em class="gold-text">everything around it.</em></span></span>
+        </h2>
+      </div>
+      <p class="lede" data-reveal style="--d:0.1s">Men’s haircuts and grooming at Studio 107. Professional, precise and finished properly.</p>
+    </header>
+
+    {hasMenu ? (
+      <div class="menu-list">
+        {groups.map(([group, items]) => (
+          <div class="menu-group" data-reveal>
+            <h3 class="menu-group__title">{group}</h3>
+            <ul>
+              {items.map((s) => (
+                <li class="menu-item">
+                  <div class="menu-item__row">
+                    <span class="menu-item__name">{s.name}</span>
+                    <span class="menu-item__leader" aria-hidden="true"></span>
+                    {s.price && <span class="menu-item__price">{s.price}</span>}
+                  </div>
+                  {(s.description || s.duration) && (
+                    <p class="menu-item__meta">{s.description}{s.description && s.duration && ' · '}{s.duration}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="pillars">
+        <article class="pillar" data-reveal>
+          <span class="pillar__num">01</span>
+          <h3 class="h3">Men’s Haircuts</h3>
+          <p class="muted">Tell your barber how you wear it and how you want it. Then sit back.</p>
+        </article>
+        <article class="pillar" data-reveal style="--d:0.1s">
+          <span class="pillar__num">02</span>
+          <h3 class="h3">Grooming</h3>
+          <p class="muted">The finishing details that make a clean look feel complete.</p>
+        </article>
+        <aside class="menu-card" data-reveal style="--d:0.2s" aria-labelledby="menu-card-title">
+          <p class="menu-card__eyebrow">Services &amp; pricing</p>
+          <h3 class="h3" id="menu-card-title">Ask for the current menu</h3>
+          <p class="muted">For today’s full list of services, prices and availability, give the shop a call. We’ll get you sorted.</p>
+          <a class="btn btn--gold" href={book.url}><Icon name="phone" /> {book.label}</a>
+          <dl class="menu-card__hours">
+            <div><dt>Mon – Fri</dt><dd>{formatRange(hoursMondayFirst[0])}</dd></div>
+            <div><dt>Saturday</dt><dd>{formatRange(hoursMondayFirst[5])}</dd></div>
+            <div><dt>Sunday</dt><dd>Closed</dd></div>
+          </dl>
+        </aside>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .services { background: var(--ink-2); overflow: hidden; }
+  .services__bg {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+    background:
+      radial-gradient(60% 50% at 85% 0%, rgba(201, 162, 94, 0.12), transparent 70%),
+      repeating-linear-gradient(0deg, transparent 0 46px, rgba(243, 238, 230, 0.025) 46px 47px);
+  }
+  .services .wrap { position: relative; }
+  .services__head { display: grid; grid-template-columns: 1.3fr 1fr; gap: 2rem 4rem; align-items: end; margin-bottom: clamp(3rem, 6vw, 5.5rem); }
+  .services__head > div { display: grid; gap: 1.6rem; }
+  .services__head .lede { justify-self: end; }
+
+  .pillars { display: grid; grid-template-columns: 1fr 1fr 1.25fr; border-top: 1px solid var(--line-light); }
+  .pillar { padding: 2.5rem 2.5rem 2.5rem 0; display: grid; gap: 1rem; align-content: start; }
+  .pillar + .pillar { padding-left: 2.5rem; border-left: 1px solid var(--line-light); }
+  .pillar__num { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.24em; color: var(--gold); }
+  .pillar .h3 { font-size: clamp(2rem, 1.5rem + 1.6vw, 3rem); }
+  .pillar p { max-width: 26ch; }
+
+  .menu-card {
+    margin: 2.5rem 0 0 2.5rem; padding: clamp(1.75rem, 3vw, 2.75rem); align-self: start;
+    background: linear-gradient(160deg, #1f1b17, #171411); border: 1px solid rgba(201, 162, 94, 0.28);
+    display: grid; gap: 1.1rem; position: relative;
+  }
+  .menu-card::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(201, 162, 94, 0.12); pointer-events: none; }
+  .menu-card__eyebrow { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold); }
+  .menu-card .btn { justify-self: start; margin-top: 0.4rem; position: relative; }
+  .menu-card__hours { margin-top: 0.6rem; border-top: 1px solid var(--line-light); padding-top: 1rem; display: grid; gap: 0.45rem; font-size: 0.9rem; }
+  .menu-card__hours div { display: flex; justify-content: space-between; gap: 1rem; }
+  .menu-card__hours dt { color: var(--muted-light); }
+
+  /* Populated menu */
+  .menu-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 3rem 5rem; }
+  .menu-group__title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold); padding-bottom: 1rem; border-bottom: 1px solid var(--line-light); }
+  .menu-item { padding-block: 1.25rem; border-bottom: 1px solid var(--line-light); }
+  .menu-item__row { display: flex; align-items: baseline; gap: 0.75rem; }
+  .menu-item__name { font-family: var(--serif); font-size: 1.6rem; line-height: 1.1; }
+  .menu-item__leader { flex: 1; border-bottom: 1px dotted rgba(243, 238, 230, 0.25); transform: translateY(-0.3em); }
+  .menu-item__price { font-family: var(--serif); font-size: 1.5rem; color: var(--gold-hi); }
+  .menu-item__meta { margin-top: 0.35rem; font-size: 0.92rem; color: var(--muted-light); }
+
+  @media (max-width: 1000px) {
+    .services__head { grid-template-columns: 1fr; }
+    .services__head .lede { justify-self: start; }
+    .pillars { grid-template-columns: 1fr 1fr; }
+    .menu-card { grid-column: 1 / -1; margin: 0 0 0; }
+  }
+  @media (max-width: 600px) {
+    .pillars { grid-template-columns: 1fr; }
+    .pillar, .pillar + .pillar { padding: 2rem 0; border-left: 0; }
+    .pillar + .pillar { border-top: 1px solid var(--line-light); }
+  }
+</style>

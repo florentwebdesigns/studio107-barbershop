@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import Intro from '../components/Intro.astro';
+import About from '../components/About.astro';
+import Services from '../components/Services.astro';
+import Gallery from '../components/Gallery.astro';
+import Visit from '../components/Visit.astro';
+import FinalCta from '../components/FinalCta.astro';
+import Footer from '../components/Footer.astro';
+import MobileBar from '../components/MobileBar.astro';
+---
+<Base
+  title="Studio 107 Barbershop | Men's Haircuts in Springfield, NJ"
+  description="Studio 107 Barbershop is a professional barbershop for men's haircuts and grooming at 265 Mountain Ave, Springfield, NJ 07081. Open Mon–Fri 9–6, Sat 8–4. Call (973) 376-9661 to book."
+>
+  <Nav />
+  <main id="main">
+    <Hero />
+    <Intro />
+    <About />
+    <Services />
+    <Gallery />
+    <Visit />
+    <FinalCta />
+  </main>
+  <Footer />
+  <MobileBar />
+</Base>
+
+<script>
+  import { initSite } from '../scripts/site';
+  initSite();
+</script>
+
+<style is:global>
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #9a8f80; flex: none; position: relative; }
+  .status-dot.is-open { background: #7fbf7a; box-shadow: 0 0 0 0 rgba(127, 191, 122, 0.6); animation: pulse 2.4s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(127, 191, 122, 0.55); } 70% { box-shadow: 0 0 0 9px rgba(127, 191, 122, 0); } 100% { box-shadow: 0 0 0 0 rgba(127, 191, 122, 0); } }
+  @media (max-width: 760px) { body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); } }
+</style>

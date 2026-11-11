@@ -1,0 +1,62 @@
+---
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+import { business, hoursMondayFirst, formatRange } from '../data/business';
+const year = new Date().getFullYear();
+---
+<footer class="footer">
+  <div class="wrap footer__grid">
+    <div class="footer__brand">
+      <Logo size="lg" />
+      <p class="muted">Professional barbering for men’s haircuts and grooming in Springfield, New Jersey.</p>
+    </div>
+    <div>
+      <h2 class="footer__h">Visit</h2>
+      <address>
+        <a href={business.mapsUrl} target="_blank" rel="noopener">{business.address.street}<br />{business.address.city}, {business.address.region} {business.address.postalCode}</a>
+      </address>
+      <a class="footer__phone" href={business.phone.href}><Icon name="phone" /> {business.phone.display}</a>
+    </div>
+    <div>
+      <h2 class="footer__h">Hours</h2>
+      <ul class="footer__hours">
+        <li><span>Mon – Fri</span><span>{formatRange(hoursMondayFirst[0])}</span></li>
+        <li><span>Saturday</span><span>{formatRange(hoursMondayFirst[5])}</span></li>
+        <li><span>Sunday</span><span>Closed</span></li>
+      </ul>
+    </div>
+    <nav aria-label="Footer">
+      <h2 class="footer__h">Explore</h2>
+      <ul class="footer__links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#visit">Contact</a></li>
+        {business.social.map((s) => <li><a href={s.url} target="_blank" rel="noopener">{s.label}</a></li>)}
+      </ul>
+    </nav>
+  </div>
+  <div class="wrap footer__base">
+    <p>© {year} {business.name}. All rights reserved.</p>
+    <p>Website by FD Web Designs LLC</p>
+  </div>
+</footer>
+
+<style>
+  .footer { background: #090807; padding-top: clamp(4rem, 8vw, 6.5rem); border-top: 1px solid var(--line-light); font-size: 0.95rem; }
+  .footer__grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 0.8fr; gap: 3rem 2rem; padding-bottom: 4rem; }
+  .footer__brand { display: grid; gap: 1.4rem; align-content: start; }
+  .footer__brand p { max-width: 30ch; }
+  .footer__h { font-size: 0.66rem; letter-spacing: 0.26em; text-transform: uppercase; font-weight: 700; color: var(--gold); margin-bottom: 1.1rem; }
+  .footer address { font-style: normal; line-height: 1.6; }
+  .footer address a:hover, .footer__links a:hover { color: var(--gold-hi); }
+  .footer__phone { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem; font-weight: 600; }
+  .footer__phone :global(svg) { width: 15px; height: 15px; color: var(--gold); }
+  .footer__phone:hover { color: var(--gold-hi); }
+  .footer__hours li { display: flex; justify-content: space-between; gap: 1rem; padding-block: 0.25rem; max-width: 16rem; }
+  .footer__hours li span:first-child { color: var(--muted-light); }
+  .footer__links { display: grid; gap: 0.45rem; }
+  .footer__base { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-block: 1.6rem; border-top: 1px solid var(--line-light); font-size: 0.78rem; color: rgba(243, 238, 230, 0.45); }
+  @media (max-width: 900px) { .footer__grid { grid-template-columns: 1fr 1fr; } .footer__brand { grid-column: 1 / -1; } }
+  @media (max-width: 520px) { .footer__grid { grid-template-columns: 1fr; } }
+</style>

@@ -1,0 +1,15 @@
+---
+import Base from '../layouts/Base.astro';
+import Logo from '../components/Logo.astro';
+import { business } from '../data/business';
+---
+<Base title="Page not found | Studio 107 Barbershop" description="This page could not be found. Visit Studio 107 Barbershop at 265 Mountain Ave, Springfield, NJ.">
+  <main id="main" style="min-height:100svh;display:grid;place-items:center;text-align:center;padding:2rem;">
+    <div style="display:grid;gap:1.5rem;justify-items:center;">
+      <Logo size="lg" />
+      <h1 class="h2">This page took a <em class="gold-text">wrong turn.</em></h1>
+      <p class="muted">Head back to the homepage, or call us at <a href={business.phone.href} style="color:var(--gold-hi)">{business.phone.display}</a>.</p>
+      <a class="btn btn--gold" href="/">Back to Studio 107</a>
+    </div>
+  </main>
+</Base>
