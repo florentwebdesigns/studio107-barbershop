@@ -34,20 +34,20 @@ The build is plain static HTML/CSS/JS in `dist/`, so it runs on any static host.
 - **Services:** while `services` is empty the section shows "Ask for the current menu" with a call button.
   Add entries and a full menu (with optional groups, prices, durations) renders automatically.
 
-## The live storefront hero
+## The living storefront hero
 
-One continuous camera move, built only from the real Studio 107 media (`src/scripts/hero-film.ts`):
+The hero is the real storefront photo brought to life in WebGL (`src/scripts/storefront-hero.ts`):
 
-1. Opens on the street-level photo of 265 Mountain Ave.
-2. The close-up storefront photo sits inside the street photo exactly over the shop's facade, so the camera
-   zooms from the street onto the sign with no cut.
-3. The front door's glass is a portal showing the real interior. Reflections fade and the room gains depth as the camera flies through.
-4. The interior footage takes over and pulls back to reveal the floor, then settles into a seamless ambient loop,
-   and the Studio 107 logo appears on the wall.
+- A hand-built depth map (`tools/make_depth.py` → `public/media/storefront-depth.png`) splits the photo into planes:
+  roof, facade, the protruding sign / pole / mailbox, and the interior through the glass.
+- The shader uses it for a slow dolly push-in with true parallax (plus gentle mouse parallax on desktop),
+  and adds the live details: the barber pole turning, the neon OPEN sign humming, a light sweep across the gold lettering,
+  soft highlight bloom, a filmic grade, vignette and grain.
+- On phones the photo is reframed so the whole sign stays readable, with the copy beneath it.
+- No WebGL: the same framing with a CSS push-in. Reduced motion: a still frame. Rendering pauses when the hero is off-screen.
 
-Photo alignment values (`FRONT`, `GLASS`) are measured in photo pixels at the top of the script. If you replace
-`storefront.webp` or `exterior-street.webp`, re-measure them. Visitors can pause or replay; reduced-motion
-and data-saver users get a still interior photo with the logo.
+Region coordinates (pole, neon, sign) are in storefront-photo pixels in the shader. If `storefront-hero.webp`
+is replaced with a new photo, re-measure them and regenerate the depth map.
 
 ## Media notes (before launch)
 

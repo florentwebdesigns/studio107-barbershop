@@ -4,77 +4,40 @@ import { business } from '../data/business';
 const book = business.booking ?? { label: 'Call to Book', url: business.phone.href };
 ---
 <section class="hero" id="top" data-hero aria-labelledby="hero-title">
-  <!--
-    Live storefront: one continuous camera move built from the real Studio 107 media.
-    The street photo and the storefront photo live in one shared "world" so the zoom never cuts;
-    the front door is a portal showing the real interior, and the camera flies through it into the footage.
-  -->
-  <div class="stage" aria-hidden="true">
-    <div class="world" data-world>
-      <div class="layer layer--street" data-street>
-        <picture>
-          <source media="(max-width: 700px)" srcset="/media/exterior-street-sm.webp" />
-          <img src="/media/exterior-street.webp" alt="" width="2000" height="1119" fetchpriority="high" decoding="async" />
-        </picture>
-      </div>
-      <div class="layer layer--front" data-front>
-        <picture>
-          <source media="(max-width: 700px)" srcset="/media/storefront-sm.webp" />
-          <img src="/media/storefront.webp" alt="" width="2000" height="1278" decoding="async" />
-        </picture>
-        <div class="portal" data-portal>
-          <img class="portal__inside" data-portal-inside src="/media/portal-interior.webp" alt="" width="816" height="1016" decoding="async" />
-          <div class="portal__glass" data-portal-glass></div>
-        </div>
-      </div>
-    </div>
-
-    <img class="scene scene--still" data-still src="/media/interior-wide.webp" alt="" width="1096" height="1268" loading="lazy" decoding="async" />
-    <video class="scene scene--video" data-reveal muted playsinline preload="auto" disablepictureinpicture
-      poster="/media/portal-interior.webp" src="/media/interior-reveal.mp4"></video>
-    <video class="scene scene--video" data-ambient muted playsinline loop preload="none" disablepictureinpicture
-      data-src="/media/interior-ambient.mp4"></video>
-
-    <div class="wall-logo" data-wall-logo>
-      <span class="wall-logo__mark">Studio 107</span>
-      <span class="wall-logo__sub">Barbershop</span>
-    </div>
-
-    <div class="stage__shade"></div>
-    <div class="stage__grain"></div>
+  <!-- The real Studio 107 storefront, brought to life in WebGL (see src/scripts/storefront-hero.ts). -->
+  <div class="stage">
+    <img class="stage__base" data-hero-base src="/media/storefront-hero.webp" width="2122" height="1356"
+      alt="The Studio 107 Barbershop storefront at 265 Mountain Ave, Springfield, NJ: a black sign with gold Studio 107 lettering, a neon OPEN sign in the window, and a barber pole beside the door"
+      fetchpriority="high" decoding="async" />
+    <canvas class="stage__gl" data-hero-canvas aria-hidden="true"></canvas>
+    <div class="stage__shade" aria-hidden="true"></div>
   </div>
 
   <div class="hero__content wrap">
     <h1 id="hero-title" class="hero__title">
-      <span class="hero__kicker" data-hero-in style="--d:0.3s"><span>Studio 107 Barbershop <span aria-hidden="true">·</span> Springfield,&nbsp;NJ</span></span>
+      <span class="hero__kicker" data-hero-in style="--d:0.5s"><span>Barbershop <span aria-hidden="true">·</span> Springfield, New&nbsp;Jersey</span></span>
       <span class="display">
-        <span class="line"><span data-hero-line style="--d:0.55s">Your style.</span></span>
-        <span class="line"><span data-hero-line style="--d:0.7s"><em class="gold-text">Your standard.</em></span></span>
+        <span class="line"><span data-hero-line style="--d:0.75s">Your style.</span></span>
+        <span class="line"><span data-hero-line style="--d:0.9s"><em class="gold-text">Your standard.</em></span></span>
       </span>
+      <span class="sr-only">Studio 107 Barbershop</span>
     </h1>
-    <p class="hero__sub" data-hero-in style="--d:1.05s">
-      Professional barbering on Mountain Ave, in the heart of Springfield, New&nbsp;Jersey.
+    <p class="hero__sub" data-hero-in style="--d:1.2s">
+      Professional men’s haircuts and grooming at 265 Mountain&nbsp;Ave.
     </p>
-    <div class="hero__ctas" data-hero-in style="--d:1.25s">
+    <div class="hero__ctas" data-hero-in style="--d:1.4s">
       <a class="btn btn--gold btn--lg" href={book.url}><Icon name="phone" /> {book.label}</a>
       <a class="btn btn--lg hero__explore" href="#gallery">Explore the Shop <Icon name="arrow" /></a>
     </div>
-    <p class="hero__status" data-hero-in style="--d:1.45s">
-      <span class="status-dot" data-open-dot></span>
-      <span data-open-status>Mon–Fri 9 AM – 6 PM · Sat 8 AM – 4 PM</span>
-    </p>
   </div>
 
-  <div class="film-controls" data-hero-in style="--d:1.6s">
-    <button type="button" class="film-btn" data-film-toggle aria-label="Pause background film">
-      <Icon name="pause" class="i-pause" /><Icon name="play" class="i-play" />
-    </button>
-    <button type="button" class="film-btn" data-film-replay aria-label="Replay the walk-in">
-      <Icon name="replay" />
-    </button>
-  </div>
+  <aside class="hero__card" data-hero-in style="--d:1.7s" aria-label="Today at Studio 107">
+    <p class="hero__card-status"><span class="status-dot" data-open-dot></span><span data-open-status>Mon–Fri 9 AM – 6 PM · Sat 8 AM – 4 PM</span></p>
+    <a class="hero__card-row" href={business.mapsUrl} target="_blank" rel="noopener"><Icon name="pin" /> {business.address.street}, {business.address.city}</a>
+    <a class="hero__card-row" href={business.phone.href}><Icon name="phone" /> {business.phone.display}</a>
+  </aside>
 
-  <a href="#intro" class="hero__scroll" aria-label="Scroll to learn more"><span>Scroll</span><i></i></a>
+  <a href="#intro" class="hero__scroll" aria-label="Scroll to learn more"><i></i></a>
 </section>
 
 <style>
@@ -84,128 +47,82 @@ const book = business.booking ?? { label: 'Call to Book', url: business.phone.hr
   }
 
   /* ---------- Stage ---------- */
-  .stage { position: absolute; inset: 0; z-index: -1; overflow: hidden; background: #0a0908; contain: strict; }
-  .world { position: absolute; inset: 0; }
-  .layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; backface-visibility: hidden; }
-  .layer picture, .layer > picture img { display: block; width: 100%; height: 100%; }
-  .layer--street { width: 2000px; height: 1119px; }
-  .layer--front {
-    width: 2000px; height: 1278px; opacity: 0;
-    /* Feathered edges so the close-up melts into the street shot during the zoom. */
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%), linear-gradient(180deg, transparent 0, #000 12%, #000 88%, transparent 100%);
-    -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%), linear-gradient(180deg, transparent 0, #000 12%, #000 88%, transparent 100%);
-    mask-composite: intersect;
+  .stage { position: absolute; inset: 0; z-index: -1; overflow: hidden; background: var(--ink); }
+  .stage__base {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%; max-width: none; object-fit: cover;
+    filter: contrast(1.05) saturate(0.95) brightness(0.92);
+    transform-origin: 50% 40%;
   }
-  .layer--front.is-solid { -webkit-mask-image: none; mask-image: none; }
-
-  /* The front door's glass, in storefront-photo pixels. */
-  .portal { position: absolute; left: 1345px; top: 643px; width: 337px; height: 635px; overflow: hidden; background: #1a1714; }
-  .portal__inside { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; transform-origin: 50% 45%; }
-  .portal__glass {
-    position: absolute; inset: 0; pointer-events: none;
-    background: url('/media/storefront.webp') -1345px -643px / 2000px 1278px no-repeat;
-    opacity: 0.6; mix-blend-mode: screen;
-  }
-
-  .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
-  .scene--video { object-position: 50% 45%; transform-origin: 50% 45%; }
-  .scene--still { object-position: 50% 45%; }
-
-  .wall-logo {
-    position: absolute; left: 70%; top: 24%; transform: translate(-50%, -50%);
-    display: grid; justify-items: center; pointer-events: none; opacity: 0;
-    filter: drop-shadow(0 6px 30px rgba(0, 0, 0, 0.45));
-  }
-  .wall-logo__mark {
-    font-family: var(--serif); font-style: italic; font-size: clamp(3rem, 2rem + 4.6vw, 7.5rem); line-height: 0.9; padding: 0 0.1em; white-space: nowrap;
-    background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .wall-logo__sub { margin-top: 0.4em; font-size: clamp(0.62rem, 0.5rem + 0.4vw, 0.95rem); font-weight: 600; letter-spacing: 0.6em; padding-left: 0.6em; text-transform: uppercase; color: #f6efe2; }
-  .wall-logo.is-in { animation: wall-in 2.2s var(--ease-out) forwards; }
-  @keyframes wall-in {
-    from { opacity: 0; filter: blur(14px) drop-shadow(0 6px 30px rgba(0, 0, 0, 0.45)); letter-spacing: 0.04em; }
-    to { opacity: 1; filter: blur(0) drop-shadow(0 6px 30px rgba(0, 0, 0, 0.45)); }
-  }
+  .stage__gl { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s var(--ease-out); }
+  .hero.has-gl .stage__gl { opacity: 1; }
+  /* No WebGL: the same photo with a slow CSS push-in. */
+  .hero.no-gl .stage__base { animation: push 40s ease-in-out infinite alternate; }
+  @keyframes push { from { transform: scale(1); } to { transform: scale(1.06); } }
+  .hero.is-portrait .stage__base { -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent); mask-image: linear-gradient(180deg, #000 80%, transparent); }
+  @media (prefers-reduced-motion: reduce) { .hero.no-gl .stage__base { animation: none; } }
 
   .stage__shade {
     position: absolute; inset: 0; pointer-events: none;
     background:
-      linear-gradient(180deg, rgba(10, 9, 8, 0.55) 0%, rgba(10, 9, 8, 0) 18%),
-      linear-gradient(0deg, rgba(10, 9, 8, 0.88) 0%, rgba(10, 9, 8, 0.4) 30%, rgba(10, 9, 8, 0) 55%),
-      linear-gradient(90deg, rgba(10, 9, 8, 0.5) 0%, rgba(10, 9, 8, 0) 48%);
-  }
-  .stage__grain {
-    position: absolute; inset: -50%; pointer-events: none; opacity: 0.08; mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    animation: grain 1.2s steps(6) infinite;
-  }
-  @keyframes grain {
-    0% { transform: translate(0, 0); } 20% { transform: translate(-4%, 3%); } 40% { transform: translate(3%, -2%); }
-    60% { transform: translate(-2%, -4%); } 80% { transform: translate(4%, 2%); } 100% { transform: translate(0, 0); }
+      linear-gradient(180deg, rgba(10, 9, 8, 0.6) 0%, rgba(10, 9, 8, 0) 14%),
+      linear-gradient(0deg, rgba(10, 9, 8, 0.92) 0%, rgba(10, 9, 8, 0.55) 26%, rgba(10, 9, 8, 0) 50%),
+      radial-gradient(70% 60% at 0% 100%, rgba(10, 9, 8, 0.7) 0%, rgba(10, 9, 8, 0) 70%);
   }
 
   /* ---------- Content ---------- */
-  .hero__content { position: relative; padding-top: calc(var(--nav-h) + 3rem); padding-bottom: clamp(6rem, 13vh, 8.5rem); }
-  .hero__title { display: grid; gap: 1.2rem; font-weight: 400; }
+  .hero__content { position: relative; padding-top: calc(var(--nav-h) + 3rem); padding-bottom: clamp(2.25rem, 5.5vh, 4.5rem); }
+  .hero__title { display: grid; gap: 1.1rem; font-weight: 400; }
   .hero__kicker {
     display: inline-flex; align-items: center; gap: 0.85rem;
-    font-family: var(--sans); font-size: 0.7rem; font-weight: 650; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold-hi);
+    font-family: var(--sans); font-size: 0.7rem; font-weight: 650; letter-spacing: 0.34em; text-transform: uppercase; color: var(--gold-hi);
   }
   .hero__kicker::before { content: ''; width: 2.25rem; height: 1px; background: currentColor; }
-  .hero__title .display { font-size: clamp(3rem, 1.5rem + 5.6vw, 6.6rem); line-height: 0.92; text-shadow: 0 2px 40px rgba(0, 0, 0, 0.4); }
+  .hero__title .display { font-size: clamp(2.6rem, 1.2rem + 3.9vw, 5rem); line-height: 0.93; text-shadow: 0 2px 30px rgba(0, 0, 0, 0.45); }
   .hero__title .gold-text { padding-right: 0.06em; }
-  .hero__sub { margin-top: 1.3rem; max-width: 34ch; font-size: clamp(1rem, 0.96rem + 0.3vw, 1.18rem); color: rgba(243, 238, 230, 0.88); line-height: 1.55; text-shadow: 0 1px 20px rgba(0, 0, 0, 0.5); }
-  .hero__ctas { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 0.9rem; }
-  .hero__explore { --bd: rgba(243, 238, 230, 0.45); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(13, 12, 11, 0.25); }
-  .hero__status { margin-top: 1.4rem; display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; font-weight: 550; color: rgba(243, 238, 230, 0.85); letter-spacing: 0.02em; }
+  .hero__sub { margin-top: 1.2rem; max-width: 36ch; font-size: clamp(1rem, 0.96rem + 0.3vw, 1.15rem); color: rgba(243, 238, 230, 0.88); line-height: 1.55; text-shadow: 0 1px 18px rgba(0, 0, 0, 0.6); }
+  .hero__ctas { margin-top: 1.6rem; display: flex; flex-wrap: wrap; gap: 0.85rem; }
+  .hero__explore { --bd: rgba(243, 238, 230, 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background: rgba(13, 12, 11, 0.3); }
 
-  .js [data-hero-in] { opacity: 0; transform: translateY(18px); transition: opacity 1.2s var(--ease-out) var(--d), transform 1.2s var(--ease-out) var(--d); }
-  .js [data-hero-line] { display: block; transform: translateY(108%); transition: transform 1.4s var(--ease-out) var(--d); }
+  .hero__card {
+    position: absolute; right: var(--gutter); bottom: clamp(2.25rem, 5.5vh, 4.5rem); z-index: 1;
+    display: grid; gap: 0.15rem; min-width: 18rem; padding: 1.1rem 1.3rem;
+    background: rgba(13, 12, 11, 0.55); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid rgba(201, 162, 94, 0.28);
+  }
+  .hero__card-status { display: flex; align-items: center; gap: 0.55rem; font-size: 0.8rem; font-weight: 650; padding-bottom: 0.65rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--line-light); }
+  .hero__card-row { display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem; color: rgba(243, 238, 230, 0.82); padding-block: 0.25rem; transition: color 0.3s; }
+  .hero__card-row:hover { color: var(--gold-hi); }
+  .hero__card-row :global(svg) { width: 14px; height: 14px; color: var(--gold); flex: none; }
+
+  .js [data-hero-in] { opacity: 0; transform: translateY(16px); transition: opacity 1.3s var(--ease-out) var(--d), transform 1.3s var(--ease-out) var(--d); }
+  .js [data-hero-line] { display: block; transform: translateY(108%); transition: transform 1.5s var(--ease-out) var(--d); }
   .js .hero.is-ready [data-hero-in] { opacity: 1; transform: none; }
   .js .hero.is-ready [data-hero-line] { transform: none; }
 
-  .film-controls { position: absolute; right: var(--gutter); bottom: clamp(1.6rem, 4vh, 2.6rem); z-index: 2; display: flex; gap: 0.5rem; }
-  .film-btn {
-    width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%;
-    border: 1px solid rgba(243, 238, 230, 0.3); color: var(--text-light);
-    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); background: rgba(13, 12, 11, 0.25);
-    transition: border-color 0.3s, color 0.3s;
-  }
-  .film-btn:hover { border-color: var(--gold-hi); color: var(--gold-hi); }
-  .film-btn :global(svg) { width: 15px; height: 15px; }
-  .film-btn :global(.i-play) { display: none; }
-  .hero.is-paused .film-btn :global(.i-play) { display: block; }
-  .hero.is-paused .film-btn :global(.i-pause) { display: none; }
-  .hero.no-film .film-controls { display: none; }
+  .hero__scroll { position: absolute; left: 50%; bottom: 1.2rem; transform: translateX(-50%); z-index: 1; padding: 0.6rem; }
+  .hero__scroll i { display: block; width: 1px; height: 38px; background: linear-gradient(rgba(243, 238, 230, 0.75), transparent); transform-origin: top; animation: scrollcue 2.6s var(--ease-inout) infinite; }
+  @keyframes scrollcue { 0% { transform: scaleY(0); } 45% { transform: scaleY(1); transform-origin: top; } 55% { transform: scaleY(1); transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
 
-  .hero__scroll {
-    position: absolute; left: 50%; transform: translateX(-50%); bottom: clamp(1.6rem, 4vh, 2.6rem); z-index: 2;
-    display: flex; align-items: center; gap: 0.9rem;
-    font-size: 0.6rem; letter-spacing: 0.34em; text-transform: uppercase; color: rgba(243, 238, 230, 0.6);
-  }
-  .hero__scroll i { width: 42px; height: 1px; background: linear-gradient(90deg, rgba(243, 238, 230, 0.7), transparent); transform-origin: left; animation: scrollcue 2.4s var(--ease-inout) infinite; }
-  @keyframes scrollcue { 0% { transform: scaleX(0); } 45% { transform: scaleX(1); transform-origin: left; } 55% { transform: scaleX(1); transform-origin: right; } 100% { transform: scaleX(0); transform-origin: right; } }
+  @media (max-width: 1100px) { .hero__card { display: none; } }
 
-  @media (max-width: 1100px) { .hero__scroll { display: none; } }
+  /* ---------- Phone / portrait: photo on top, copy beneath it ---------- */
+  .hero.is-portrait { align-items: stretch; }
+  .hero.is-portrait .hero__content { display: flex; flex-direction: column; justify-content: flex-end; padding-top: calc(var(--photo-bottom, 50vh) - 6rem); padding-bottom: 2rem; }
+  .hero.is-portrait .stage__shade {
+    background:
+      linear-gradient(180deg, rgba(10, 9, 8, 0.55) 0%, rgba(10, 9, 8, 0) 12%),
+      linear-gradient(0deg, rgba(10, 9, 8, 1) 0%, rgba(10, 9, 8, 0.85) 35%, rgba(10, 9, 8, 0) 55%);
+  }
+  .hero.is-portrait .hero__scroll { display: none; }
   @media (max-width: 760px) {
-    .hero__content { padding-bottom: 5.5rem; }
     .hero__kicker { font-size: 0.64rem; letter-spacing: 0.26em; }
     .hero__kicker::before { width: 1.5rem; }
     .hero__ctas .btn { flex: 1 1 100%; }
-    .film-controls { bottom: 1.25rem; }
-    .wall-logo { left: 50%; top: 22%; }
-    .wall-logo__mark { font-size: 3.4rem; }
-    .stage__shade {
-      background:
-        linear-gradient(180deg, rgba(10, 9, 8, 0.6) 0%, rgba(10, 9, 8, 0) 16%),
-        linear-gradient(0deg, rgba(10, 9, 8, 0.95) 0%, rgba(10, 9, 8, 0.65) 40%, rgba(10, 9, 8, 0) 66%);
-    }
+    .hero__title .display { font-size: clamp(2.6rem, 11vw, 3.4rem); }
   }
-  @media (max-width: 760px) and (max-height: 700px) { .hero__sub { display: none; } }
 </style>
 
 <script>
-  import { initHeroFilm } from '../scripts/hero-film';
-  initHeroFilm();
+  import { initStorefrontHero } from '../scripts/storefront-hero';
+  initStorefrontHero();
 </script>
