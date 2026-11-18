@@ -11,6 +11,8 @@
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource/instrument-serif": "^5.3.0",
-    "astro": "^5.18.2"
+    "@types/three": "^0.170.0",
+    "astro": "^5.18.2",
+    "three": "^0.170.0"
   }
 }

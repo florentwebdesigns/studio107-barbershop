@@ -60,7 +60,7 @@ function initNav() {
     // Hide on scroll down past the hero, reveal on scroll up.
     nav.classList.toggle('is-hidden', !menuOpen && y > heroH && y > lastY + 4);
     if (y < lastY - 4 || y < heroH) nav.classList.remove('is-hidden');
-    mbar?.classList.toggle('is-visible', y > heroH * 0.6 && !menuOpen);
+    mbar?.classList.toggle('is-visible', y > Math.min(heroH, innerHeight) * 0.6 && !menuOpen);
     lastY = y;
   };
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -74,7 +74,7 @@ function initNav() {
     document.documentElement.style.overflow = open ? 'hidden' : '';
     nav.classList.toggle('is-solid', open || window.scrollY > 40);
     nav.classList.remove('is-hidden');
-    mbar?.classList.toggle('is-visible', !open && window.scrollY > (hero?.offsetHeight ?? 600) * 0.6);
+    mbar?.classList.toggle('is-visible', !open && window.scrollY > Math.min(hero?.offsetHeight ?? 600, innerHeight) * 0.6);
     if (open) {
       menu.hidden = false;
       requestAnimationFrame(() => requestAnimationFrame(() => menu.classList.add('is-open')));

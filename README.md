@@ -55,3 +55,16 @@ The supplied media looks like it came from Google Maps / Street View (screenshot
 but before the site goes live, get the owner's own photos/video or written permission to use these. The video was cropped to remove the
 Maps player controls and watermark. Footage shot on a phone (4K, landscape, a slow walk from the sidewalk through the door) would make a much sharper hero.
 Just replace the files in `public/media/` with the same names.
+
+## 3D drone homepage
+
+The homepage hero is a scroll-driven 3D scene (`src/components/DroneHero.astro`, code in `src/scripts/drone/`):
+a dusk "drone shot" of the storefront, a client walking out and pulling the door shut, then the camera
+flies through the door, along the chairs, and stops on a menu board drawn from `src/data/services.ts`.
+Everything is procedural Three.js (no 3D model files). Phones without WebGL, data-saver mode and
+reduced-motion users get the real storefront photo instead.
+
+- Camera path: `KEYS` in `src/scripts/drone/drone-hero.ts` (scroll progress 0 to 1).
+- Overlay text per scroll range: the `data-from` / `data-to` blocks in `DroneHero.astro`.
+- Add `?snap` to the URL to disable scroll smoothing (handy for screenshots).
+- **Roll back to the photo hero:** in `src/pages/index.astro`, import `Hero` and use `<Hero />` instead of `<DroneHero />`.
