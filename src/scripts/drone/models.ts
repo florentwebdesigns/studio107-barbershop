@@ -1,26 +1,30 @@
 /**
- * Geometry for the 3D Studio 107 storefront and interior.
- * Coordinates are meters. x runs along the facade, y is up, +z points to the street.
- * The facade plane is z = 0 and the shop interior runs back to z = -11.
- * Layout and materials follow the real photos: red brick, black and gold sign, white-framed
- * window and door with the "265" transom, barber pole, neon "open", reclaimed-wood wall,
- * white mirrors, black barber chairs and grey-brown plank floor.
+ * The 3D block around Studio 107, 265 Mountain Ave, Springfield NJ.
+ * Coordinates are meters. x runs along the facade (street on +z), y is up, the facade is z = 0.
+ *
+ * Layout follows the Street View imagery of the real block:
+ * - one-storey brick strip of three shops under a dark shingled hip roof with a white fascia:
+ *   a dog groomer (left), Studio 107 (center), a day spa with a brown sign panel (right).
+ *   Neighbours are shown without names or logos.
+ * - a gravel forecourt with concrete walkways to each door, a herringbone brick sidewalk,
+ *   a fire hydrant at the curb, a black lamp post with a street tree at the left end,
+ *   overhead utility wires, the shop's BARBER feather flag,
+ * - a metal-sided building and parking lot on the left, a long hedge, a white two-storey
+ *   house and a red Japanese maple on the right, tall pines and bare trees behind.
+ * Studio 107 itself follows the storefront photo: black sign with gold script, white-framed
+ * window with the neon "open", "265" transom, barber pole, mailbox, twin flood light; inside,
+ * the reclaimed-wood wall, white mirrors, black chairs and a menu board with the real prices.
  */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import * as T from './textures';
+import { worldUV, type Assets, type TexSet } from './assets';
 
+type Shadow = 'both' | 'cast' | 'receive' | 'none';
 const std = (o: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(o);
 
-function rep(t: THREE.Texture, rx: number, ry: number) {
-  const c = t.clone();
-  c.wrapS = c.wrapT = THREE.RepeatWrapping;
-  c.repeat.set(rx, ry);
-  c.needsUpdate = true;
-  return c;
-}
-
-function mesh(geo: THREE.BufferGeometry, mat: THREE.Material | THREE.Material[], x = 0, y = 0, z = 0, shadow: 'both' | 'cast' | 'receive' | 'none' = 'both') {
+function mesh(geo: THREE.BufferGeometry, mat: THREE.Material | THREE.Material[], x = 0, y = 0, z = 0, shadow: Shadow = 'both') {
   const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
   m.castShadow = shadow === 'both' || shadow === 'cast';
@@ -33,491 +37,697 @@ const cyl = (rt: number, rb: number, h: number, seg = 24) => new THREE.CylinderG
 
 export type World = ReturnType<typeof buildWorld>;
 
-export function buildWorld(scene: THREE.Scene, quality: 'high' | 'low') {
+// Studio 107 openings (shared with the camera choreography in drone-hero.ts)
+export const WIN = { x0: -2.5, x1: 1.0, y0: 0.42, y1: 2.55 };
+export const DOOR = { x0: 1.18, x1: 2.38, top: 2.42, transom: 2.95 };
+export const SIGN = { x0: -2.72, x1: 1.04, y0: 2.6, y1: 3.56 };
+const BAND = 2.98; // top of brick, start of the stucco band
+const FASCIA = 3.62;
+const X0 = -10.2, X1 = 10.6, ZB = -12;
+const WALL_T = 0.26;
+export const IZ1 = -11; // back wall of the shop interior
+
+export function buildWorld(scene: THREE.Scene, A: Assets, quality: 'high' | 'low') {
   T.resetSeed();
-  const tx = {
-    brick: T.brick(),
-    shingles: T.shingles(),
-    concrete: T.concrete(true),
-    gravel: T.gravel(),
-    pavers: T.pavers(),
-    asphalt: T.asphalt(),
-    stucco: T.stucco(),
+  const ctex = {
     sign: T.sign(),
     neon: T.neon(),
     transom: T.transom(),
     pole: T.poleStripes(),
     sky: T.sky(),
-    wood: T.woodWall(),
-    floor: T.floor(),
     ceiling: T.ceiling(),
     menu: T.menuBoard(),
+    dogs: T.dogDecals(),
+    spa: T.spaSign(),
+    flag: T.featherFlag(),
+    shopCool: T.shopInterior('#3a4048'),
+    shopWarm: T.shopInterior('#6a4a34', true),
   };
 
-  // Brick texture covers ~1.55m x 1.4m.
-  const brickMat = (w: number, h: number) =>
-    std({ map: rep(tx.brick.map, w / 1.55, h / 1.4), bumpMap: rep(tx.brick.bump, w / 1.55, h / 1.4), bumpScale: 1.2, roughness: 0.92 });
-  const white = std({ color: '#e9e7e2', roughness: 0.55 });
-  const alu = std({ color: '#d9dadb', roughness: 0.35, metalness: 0.6 });
-  const black = std({ color: '#0c0c0c', roughness: 0.5 });
-  const chrome = std({ color: '#ffffff', roughness: 0.08, metalness: 1 });
+  /* ---------- PBR materials from the baked sets ---------- */
+  const pbr = (set: TexSet, o: Omit<THREE.MeshStandardMaterialParameters, 'normalScale'> & { normalScale?: number } = {}) => {
+    const s = A.tex[set];
+    const { normalScale = 1, ...rest } = o;
+    return std({
+      map: s.map, normalMap: s.normal, aoMap: s.orm, roughnessMap: s.orm, roughness: 1, metalness: 0,
+      normalScale: new THREE.Vector2(normalScale, normalScale), aoMapIntensity: 1, ...rest,
+    });
+  };
+  const M = {
+    brick: pbr('brick', { normalScale: 1.2 }),
+    shingles: pbr('shingles', { normalScale: 1.1, side: THREE.DoubleSide }),
+    pavers: pbr('pavers', { normalScale: 1.2 }),
+    gravel: pbr('gravel', { normalScale: 1.4 }),
+    concrete: pbr('concrete', { color: '#e8e4dc' }),
+    sidewalk: pbr('sidewalk'),
+    asphalt: pbr('asphalt', { color: '#b8b8b8' }),
+    siding: pbr('siding'),
+    metalSiding: pbr('siding', { color: '#a9adb0', roughness: 0.8 }),
+    stucco: pbr('stucco', { color: '#d6d2ca' }),
+    wood: pbr('woodwall', { normalScale: 0.8 }),
+    floor: pbr('floor', { normalScale: 0.5 }),
+  };
+  const white = std({ color: '#ecebe6', roughness: 0.42 });
+  const alu = std({ color: '#d4d6d8', roughness: 0.3, metalness: 0.75 });
+  const black = std({ color: '#0b0b0b', roughness: 0.45 });
+  const blackMetal = std({ color: '#121314', roughness: 0.38, metalness: 0.6 });
+  const chrome = std({ color: '#ffffff', roughness: 0.06, metalness: 1 });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: '#9fb2b8', roughness: 0.04, metalness: 0, transparent: true, opacity: 0.16, envMapIntensity: 1.6, depthWrite: false,
+    color: '#cfe0e4', roughness: 0.02, metalness: 0, transparent: true, opacity: 0.12, envMapIntensity: 2.4,
+    depthWrite: false, specularIntensity: 1, ior: 1.5,
   });
 
   const root = new THREE.Group();
   scene.add(root);
-  const add = (o: THREE.Object3D) => (root.add(o), o);
+  const add = <O extends THREE.Object3D>(o: O) => (root.add(o), o);
 
-  /* ---------------- Sky & backdrop ---------------- */
-  const skyMat = new THREE.MeshBasicMaterial({ map: tx.sky, side: THREE.BackSide, fog: false, depthWrite: false });
-  const skyDome = new THREE.Mesh(new THREE.SphereGeometry(150, 32, 24), skyMat);
-  skyDome.position.y = -8;
-  add(skyDome);
-
-  // Evergreen silhouettes behind the building, like the pines behind the real strip.
-  const treeMat = std({ color: '#06090a', roughness: 1 });
-  const treeSpots: [number, number, number][] = [[-11, -19, 13], [-4, -24, 16], [3, -21, 12], [9, -26, 17], [15, -20, 11], [-18, -26, 14]];
-  for (const [x, z, h] of treeSpots) {
-    for (let k = 0; k < 5; k++) {
-      const r = (h * 0.26) * (1 - k * 0.17);
-      const g = new THREE.ConeGeometry(r, h * 0.36, 14, 3);
-      const pos = g.attributes.position;
-      for (let i = 0; i < pos.count; i++) {
-        if (pos.getY(i) > h * 0.17) continue;
-        const j = 1 + (Math.sin(i * 12.9898 + x * 78.233) * 0.5) * 0.45;
-        pos.setX(i, pos.getX(i) * j);
-        pos.setZ(i, pos.getZ(i) * j);
-      }
-      g.computeVertexNormals();
-      const c = mesh(g, treeMat, x + Math.sin(k * 2.1) * 0.25, h * 0.2 + k * h * 0.15, z, 'none');
-      c.rotation.y = k * 1.3;
-      add(c);
-    }
-  }
-
-  /* ---------------- Ground ---------------- */
-  const plane = (w: number, d: number, mat: THREE.Material, x: number, z: number, y = 0) => {
-    const m = mesh(new THREE.PlaneGeometry(w, d), mat, x, y, z, 'receive');
-    m.rotation.x = -Math.PI / 2;
-    return add(m);
+  /** A box with continuous world-space texture mapping. */
+  const wbox = (w: number, h: number, d: number, mat: THREE.Material, x: number, y: number, z: number, tile: number, shadow: Shadow = 'both', rot = 0) => {
+    const off = new THREE.Vector3(x, y, z);
+    return add(mesh(worldUV(box(w, h, d), tile, off, rot), mat, x, y, z, shadow));
   };
-  const road = std({ map: rep(tx.asphalt, 20, 6), roughness: 0.55, metalness: 0.0, color: '#9a9a9a' });
-  plane(120, 50, road, 0, 34.3, -0.12);
-  const sidewalk = std({ map: rep(tx.pavers, 30, 1.0), roughness: 0.75 });
-  plane(70, 3, sidewalk, 0, 7.5, 0.0);
-  const curb = std({ map: rep(tx.concrete, 30, 0.2), roughness: 0.8 });
-  add(mesh(box(70, 0.14, 0.25), curb, 0, -0.05, 9.12));
-  // gravel beds + concrete walkways to each door
-  const gravelMat = std({ map: rep(tx.gravel, 8, 2.5), roughness: 0.95 });
-  plane(70, 6, gravelMat, 0, 3, 0.005);
-  const walkMat = std({ map: rep(tx.concrete, 1, 4), roughness: 0.82, color: '#c8c4bc' });
-  for (const wx of [-4.35, 1.78, 4.45, -10.4, 10.6]) plane(1.25, 6, walkMat, wx, 3, 0.02);
-  // apron along the facade
-  plane(70, 0.7, walkMat, 0, 0.35, 0.021);
+  /** A ground patch (thin box so edges read) with world-space mapping. */
+  const ground = (x0: number, x1: number, z0: number, z1: number, y: number, mat: THREE.Material, tile: number, rot = 0, thick = 0.04) =>
+    wbox(x1 - x0, thick, z1 - z0, mat, (x0 + x1) / 2, y - thick / 2, (z0 + z1) / 2, tile, 'receive', rot);
 
-  /* ---------------- Building shell ---------------- */
-  const X0 = -14.5, X1 = 14.5, ZB = -11.6;
-  // Studio 107 unit openings
-  const WIN = { x0: -3.2, x1: 1.0, y0: 0.45, y1: 2.55 };
-  const DOOR = { x0: 1.18, x1: 2.38, top: 2.42, transom: 3.0 };
-  const SIGN = { x0: -3.4, x1: 1.02, y0: 2.6, y1: 3.66 };
-  const BAND = 3.66; // brick top / stucco band start
+  /* ================= Sky ================= */
+  const skyMat = new THREE.MeshBasicMaterial({ map: ctex.sky, side: THREE.BackSide, fog: false, depthWrite: false });
+  const skyDome = add(new THREE.Mesh(new THREE.SphereGeometry(180, 48, 24), skyMat));
+  skyDome.position.y = -10;
+  skyDome.renderOrder = -1;
 
-  const wallT = 0.26;
-  const brickBox = (x0: number, x1: number, y0: number, y1: number) => {
-    const w = x1 - x0, h = y1 - y0;
-    if (w <= 0 || h <= 0) return;
-    add(mesh(box(w, h, wallT), brickMat(w, h), (x0 + x1) / 2, (y0 + y1) / 2, -wallT / 2));
+  /* ================= Ground plan ================= */
+  const SW0 = 6.2, SW1 = 8.6; // sidewalk z range
+  ground(-70, 70, 8.82, 40, -0.13, M.asphalt, 4); // Mountain Ave
+  // double yellow centre line
+  for (const dz of [-0.08, 0.08]) add(mesh(box(140, 0.005, 0.1), std({ color: '#c9a227', roughness: 0.7 }), 0, -0.127, 19 + dz, 'receive'));
+  wbox(140, 0.17, 0.22, M.concrete, 0, -0.045, 8.71, 1.5, 'both'); // granite-ish curb
+  ground(-70, 70, SW0, SW1, 0.0, M.pavers, 0.8, Math.PI / 4); // herringbone at 45 degrees, like the real sidewalk
+  // gravel forecourt in front of the strip, plus the strip of gravel continuing right toward the hedge
+  ground(X0, 14, 0.9, SW0, 0.004, M.gravel, 1.0);
+  // concrete apron along the facade and walkways to each door
+  ground(X0, X1, 0, 0.9, 0.03, M.concrete, 2.0);
+  const walks = [-4.48, 1.78, 9.22, 12.4];
+  for (const wx of walks) ground(wx - 0.65, wx + 0.65, 0.9, SW0, 0.028, M.concrete, 2.0, 0.0);
+  // black steel edging along each walkway
+  for (const wx of walks) for (const s of [-1, 1]) add(mesh(box(0.012, 0.05, SW0 - 0.9), blackMetal, wx + s * 0.66, 0.02, (0.9 + SW0) / 2, 'receive'));
+  add(mesh(box(X1 - X0 + 3.4, 0.05, 0.012), blackMetal, (X0 + 14) / 2, 0.02, 0.9, 'receive'));
+  // left: parking lot of the metal-sided building
+  ground(-40, X0, -14, SW0, 0.0, M.asphalt, 4, 0, 0.06);
+  // right: lawn strip behind the hedge, toward the house
+  ground(14, 40, -16, SW0, 0.0, std({ color: '#3c4630', roughness: 1 }), 2, 0, 0.05);
+  ground(X1, 40, -16, 0.9, 0.001, std({ color: '#3a4430', roughness: 1 }), 2, 0, 0.05);
+  // backdrop ground behind the strip (dark lawn)
+  ground(-40, 40, -40, -14, 0.0, std({ color: '#262b20', roughness: 1 }), 2, 0, 0.05);
+  ground(X0, X1, -14, ZB, 0.0, std({ color: '#2a2e23', roughness: 1 }), 2, 0, 0.05);
+
+  /* ================= The strip building ================= */
+  const brick = (x0: number, x1: number, y0: number, y1: number) => {
+    if (x1 - x0 <= 0 || y1 - y0 <= 0) return;
+    wbox(x1 - x0, y1 - y0, WALL_T, M.brick, (x0 + x1) / 2, (y0 + y1) / 2, -WALL_T / 2, 1.02);
   };
-  // Left neighbor (generic, no branding): window + door
-  brickBox(X0, -9.6, 0, BAND);
-  brickBox(-9.6, -5.2, 0, 0.45);
-  brickBox(-9.6, -5.2, 2.5, BAND);
-  brickBox(-5.2, -4.95, 0, BAND);
-  brickBox(-4.95, -3.85, 2.45, BAND);
-  brickBox(-3.85, WIN.x0, 0, BAND);
+  // left unit: end pier, window, pier, door, pier
+  brick(X0, -9.7, 0, BAND);
+  brick(-9.7, -5.3, 0, 0.42);
+  brick(-9.7, -5.3, 2.55, BAND);
+  brick(-5.3, -5.0, 0, BAND);
+  brick(-5.0, -3.95, 2.95, BAND);
+  brick(-3.95, WIN.x0, 0, BAND);
   // Studio 107
-  brickBox(WIN.x0, WIN.x1, 0, WIN.y0);
-  brickBox(WIN.x1, DOOR.x0, 0, BAND);
-  brickBox(DOOR.x0, DOOR.x1, DOOR.transom, BAND);
-  brickBox(WIN.x0, WIN.x1, WIN.y1, BAND);
-  brickBox(DOOR.x1, 4.0, 0, BAND);
-  // Right neighbor
-  brickBox(4.0, 4.95, 2.45, BAND);
-  brickBox(4.95, 5.25, 0, BAND);
-  brickBox(5.25, 9.9, 0, 0.45);
-  brickBox(5.25, 9.9, 2.5, BAND);
-  brickBox(9.9, X1, 0, BAND);
+  brick(WIN.x0, WIN.x1, 0, WIN.y0);
+  brick(WIN.x0, WIN.x1, WIN.y1, BAND);
+  brick(WIN.x1, DOOR.x0, 0, BAND);
+  brick(DOOR.x0, DOOR.x1, DOOR.transom, BAND);
+  brick(DOOR.x1, 3.6, 0, BAND);
+  // right unit (spa): window, pier, door, end pier
+  brick(3.6, 3.9, 0, BAND);
+  brick(3.9, 8.4, 0, 0.42);
+  brick(3.9, 8.4, 2.55, BAND);
+  brick(8.4, 8.7, 0, BAND);
+  brick(8.7, 9.75, 2.95, BAND);
+  brick(9.75, X1, 0, BAND);
+  // brick sills under the windows
+  const sill = std({ color: '#8f7a6c', roughness: 0.8 });
+  for (const [a, b] of [[-9.7, -5.3], [WIN.x0, WIN.x1], [3.9, 8.4]]) add(mesh(rbox(b - a + 0.08, 0.06, 0.3, 0.01), sill, (a + b) / 2, 0.43, 0.0));
 
-  // Stucco band, soffit and gutter
-  const stuccoMat = std({ map: rep(tx.stucco, 20, 1), roughness: 0.9 });
-  add(mesh(box(X1 - X0, 0.5, wallT), stuccoMat, 0, BAND + 0.25, -wallT / 2));
-  add(mesh(box(X1 - X0 + 0.8, 0.12, 0.85), white, 0, BAND + 0.56, 0.3));
-  add(mesh(box(X1 - X0 + 0.8, 0.2, 0.08), white, 0, BAND + 0.5, 0.72));
-  // side & back walls (dark, mostly unseen)
-  const shellMat = std({ color: '#3a2a24', roughness: 0.95 });
-  add(mesh(box(wallT, BAND + 0.5, -ZB), shellMat, X0, (BAND + 0.5) / 2, ZB / 2));
-  add(mesh(box(wallT, BAND + 0.5, -ZB), shellMat, X1, (BAND + 0.5) / 2, ZB / 2));
-  add(mesh(box(X1 - X0, BAND + 0.5, wallT), shellMat, 0, (BAND + 0.5) / 2, ZB));
-  // Neighbor interiors are closed volumes so you never see through the building.
-  const voidMat = std({ color: '#0e0c0e', roughness: 1 });
-  add(mesh(box(-3.45 - X0, BAND, -0.95 - ZB), voidMat, (X0 - 3.45) / 2, BAND / 2, (ZB - 0.95) / 2, 'none'));
-  add(mesh(box(X1 - 3.75, BAND, -0.95 - ZB), voidMat, (X1 + 3.75) / 2, BAND / 2, (ZB - 0.95) / 2, 'none'));
+  // stucco band, white soffit + fascia + gutter, downspouts
+  wbox(X1 - X0, FASCIA - BAND, WALL_T, M.stucco, (X0 + X1) / 2, (BAND + FASCIA) / 2, -WALL_T / 2, 1.5);
+  add(mesh(box(X1 - X0 + 0.9, 0.06, 0.95), white, (X0 + X1) / 2, FASCIA + 0.02, 0.3)); // soffit
+  add(mesh(rbox(X1 - X0 + 0.9, 0.2, 0.05, 0.01), white, (X0 + X1) / 2, FASCIA + 0.08, 0.78)); // fascia
+  add(mesh(rbox(X1 - X0 + 0.9, 0.12, 0.12, 0.03), white, (X0 + X1) / 2, FASCIA + 0.2, 0.84)); // gutter
+  for (const dx of [X0 - 0.3, X1 + 0.3]) add(mesh(rbox(0.08, FASCIA + 0.2, 0.08, 0.02), white, dx, (FASCIA + 0.2) / 2, 0.84));
+  // side and back walls in brick so nothing reads as a void
+  wbox(WALL_T, BAND, -ZB, M.brick, X0, BAND / 2, ZB / 2, 1.02);
+  wbox(WALL_T, BAND, -ZB, M.brick, X1, BAND / 2, ZB / 2, 1.02);
+  wbox(WALL_T, FASCIA - BAND, -ZB, M.stucco, X0, (BAND + FASCIA) / 2, ZB / 2, 1.5);
+  wbox(WALL_T, FASCIA - BAND, -ZB, M.stucco, X1, (BAND + FASCIA) / 2, ZB / 2, 1.5);
+  wbox(X1 - X0, FASCIA, WALL_T, M.brick, (X0 + X1) / 2, FASCIA / 2, ZB, 1.02);
+  // neighbour interiors are closed boxes so you never see through the strip
+  const voidMat = std({ color: '#151313', roughness: 1 });
+  add(mesh(box(WIN.x0 - 0.35 - X0, BAND, -1.2 - ZB), voidMat, (X0 + WIN.x0 - 0.35) / 2, BAND / 2, (ZB - 1.2) / 2, 'none'));
+  add(mesh(box(X1 - 3.65, BAND, -1.2 - ZB), voidMat, (X1 + 3.65) / 2, BAND / 2, (ZB - 1.2) / 2, 'none'));
 
-  // Hip roof
+  // hip roof with ridge cap
   {
-    const eY = BAND + 0.6, rY = eY + 2.5, ez0 = 0.75, ez1 = ZB - 0.6, ex0 = X0 - 0.4, ex1 = X1 + 0.4;
-    const rz = (ez0 + ez1) / 2, rx0 = ex0 + (ez0 - rz), rx1 = ex1 - (ez0 - rz);
+    const eY = FASCIA + 0.1, rY = eY + 2.0, ez0 = 0.85, ez1 = ZB - 0.6, ex0 = X0 - 0.45, ex1 = X1 + 0.45;
+    const rz = (ez0 + ez1) / 2, rx0 = ex0 + (ez0 - rz) * 0.9, rx1 = ex1 - (ez0 - rz) * 0.9;
     const v = [
-      // front
       ex0, eY, ez0, ex1, eY, ez0, rx1, rY, rz, ex0, eY, ez0, rx1, rY, rz, rx0, rY, rz,
-      // back
       ex1, eY, ez1, ex0, eY, ez1, rx0, rY, rz, ex1, eY, ez1, rx0, rY, rz, rx1, rY, rz,
-      // left
       ex0, eY, ez1, ex0, eY, ez0, rx0, rY, rz,
-      // right
       ex1, eY, ez0, ex1, eY, ez1, rx1, rY, rz,
     ];
-    const uv: number[] = [];
-    for (let i = 0; i < v.length; i += 3) {
-      const x = v[i], y = v[i + 1], z = v[i + 2];
-      const isSide = i >= 36;
-      uv.push(isSide ? z / 3 : x / 3, (y - eY) / 1.6 + (isSide ? x / 6 : 0));
-    }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    g.computeVertexNormals();
-    const shingleTex = rep(tx.shingles, 1, 1);
-    const roof = mesh(g, std({ map: shingleTex, roughness: 0.9, side: THREE.DoubleSide }), 0, 0, 0, 'both');
-    add(roof);
+    const gg = worldUV(g, 1.2);
+    gg.computeVertexNormals();
+    add(mesh(gg, M.shingles, 0, 0, 0, 'both'));
+    // ridge and hip caps
+    const capMat = std({ color: '#2a2b2d', roughness: 0.85 });
+    const capLine = (a: THREE.Vector3, b: THREE.Vector3) => {
+      const len = a.distanceTo(b);
+      const m = mesh(box(0.22, 0.06, len), capMat, (a.x + b.x) / 2, (a.y + b.y) / 2 + 0.02, (a.z + b.z) / 2, 'cast');
+      m.lookAt(b.x, b.y + 0.02, b.z);
+      add(m);
+    };
+    const R0 = new THREE.Vector3(rx0, rY, rz), R1 = new THREE.Vector3(rx1, rY, rz);
+    capLine(R0, R1);
+    capLine(new THREE.Vector3(ex0, eY, ez0), R0);
+    capLine(new THREE.Vector3(ex1, eY, ez0), R1);
+    capLine(new THREE.Vector3(ex0, eY, ez1), R0);
+    capLine(new THREE.Vector3(ex1, eY, ez1), R1);
   }
 
-  /* ---------------- Studio 107 storefront ---------------- */
-  // Sign panel: black box, printed front face.
+  /* ================= Studio 107 storefront ================= */
   {
     const w = SIGN.x1 - SIGN.x0, h = SIGN.y1 - SIGN.y0;
-    const face = std({ map: tx.sign.map, emissiveMap: tx.sign.emissive, emissive: new THREE.Color('#ffd79a'), emissiveIntensity: 0.55, roughness: 0.32, metalness: 0.15 });
-    const mats = [black, black, black, black, face, black];
-    add(mesh(box(w, h, 0.14), mats, (SIGN.x0 + SIGN.x1) / 2, (SIGN.y0 + SIGN.y1) / 2, 0.07));
-    // thin metal trim
-    add(mesh(box(w + 0.04, 0.03, 0.16), alu, (SIGN.x0 + SIGN.x1) / 2, SIGN.y1 + 0.01, 0.07));
-    add(mesh(box(w + 0.04, 0.03, 0.16), alu, (SIGN.x0 + SIGN.x1) / 2, SIGN.y0 - 0.01, 0.07));
+    const face = std({
+      map: ctex.sign.map, emissiveMap: ctex.sign.emissive, emissive: new THREE.Color('#ffd79a'), emissiveIntensity: 0.6,
+      roughness: 0.28, metalness: 0.1,
+    });
+    add(mesh(rbox(w, h, 0.14, 0.015), black, (SIGN.x0 + SIGN.x1) / 2, (SIGN.y0 + SIGN.y1) / 2, 0.07));
+    add(mesh(new THREE.PlaneGeometry(w - 0.02, h - 0.02), face, (SIGN.x0 + SIGN.x1) / 2, (SIGN.y0 + SIGN.y1) / 2, 0.142, 'none'));
+    add(mesh(box(w + 0.03, 0.025, 0.16), alu, (SIGN.x0 + SIGN.x1) / 2, SIGN.y1 + 0.005, 0.07));
+    add(mesh(box(w + 0.03, 0.025, 0.16), alu, (SIGN.x0 + SIGN.x1) / 2, SIGN.y0 - 0.005, 0.07));
   }
 
-  // Window frame (white aluminium) with center mullion
-  const frameBar = (x: number, y: number, w: number, h: number, d = 0.12) => add(mesh(box(w, h, d), white, x, y, -0.06));
-  const wcx = (WIN.x0 + WIN.x1) / 2, ww = WIN.x1 - WIN.x0, wh = WIN.y1 - WIN.y0;
-  frameBar(wcx, WIN.y0 + 0.04, ww, 0.08);
-  frameBar(wcx, WIN.y1 - 0.04, ww, 0.08);
-  frameBar(WIN.x0 + 0.04, (WIN.y0 + WIN.y1) / 2, 0.08, wh);
-  frameBar(WIN.x1 - 0.04, (WIN.y0 + WIN.y1) / 2, 0.08, wh);
-  frameBar(-1.08, (WIN.y0 + WIN.y1) / 2, 0.07, wh);
-  add(mesh(new THREE.PlaneGeometry(ww, wh), glass, wcx, (WIN.y0 + WIN.y1) / 2, -0.04, 'none'));
-  // brick sill cap
-  add(mesh(box(ww + 0.1, 0.05, 0.32), std({ color: '#9b8f84', roughness: 0.8 }), wcx, WIN.y0 - 0.01, -0.02));
+  const frameBar = (x: number, y: number, w: number, h: number, d = 0.12) => add(mesh(rbox(w, h, d, 0.008, 2), white, x, y, -0.06));
+  const storefrontWindow = (x0: number, x1: number, y0: number, y1: number, mullions: number[]) => {
+    const cx = (x0 + x1) / 2, w = x1 - x0, h = y1 - y0;
+    frameBar(cx, y0 + 0.04, w, 0.08);
+    frameBar(cx, y1 - 0.04, w, 0.08);
+    frameBar(x0 + 0.04, (y0 + y1) / 2, 0.08, h);
+    frameBar(x1 - 0.04, (y0 + y1) / 2, 0.08, h);
+    for (const mx of mullions) frameBar(mx, (y0 + y1) / 2, 0.07, h);
+    add(mesh(new THREE.PlaneGeometry(w, h), glass, cx, (y0 + y1) / 2, -0.04, 'none'));
+  };
+  const doorFrame = (x0: number, x1: number, top: number, transom: number) => {
+    const cx = (x0 + x1) / 2, w = x1 - x0;
+    frameBar(x0 + 0.04, transom / 2, 0.08, transom);
+    frameBar(x1 - 0.04, transom / 2, 0.08, transom);
+    frameBar(cx, transom - 0.04, w, 0.08);
+    frameBar(cx, top + 0.03, w, 0.07);
+    add(mesh(new THREE.PlaneGeometry(w - 0.1, transom - top - 0.1), glass, cx, (top + transom) / 2, -0.05, 'none'));
+    const num = new THREE.MeshBasicMaterial({ map: ctex.transom, transparent: true, depthWrite: false, color: new THREE.Color(0.95, 0.95, 0.95) });
+    add(mesh(new THREE.PlaneGeometry(0.8, 0.4), num, cx, (top + transom) / 2, -0.035, 'none'));
+  };
+  storefrontWindow(WIN.x0, WIN.x1, WIN.y0, WIN.y1, [-0.75]);
+  doorFrame(DOOR.x0, DOOR.x1, DOOR.top, DOOR.transom);
 
-  // Neon "open" hanging inside the upper left of the window
-  const neonMat = new THREE.MeshBasicMaterial({ map: tx.neon, transparent: true, depthWrite: false, toneMapped: false, color: new THREE.Color(2.4, 2.4, 2.4), blending: THREE.AdditiveBlending });
-  const neonSign = mesh(new THREE.PlaneGeometry(1.0, 0.5), neonMat, -2.25, 2.12, -0.16, 'none');
-  add(neonSign);
-  const neonLight = new THREE.PointLight('#ff3048', 2.2, 4.5, 2);
-  neonLight.position.set(-2.25, 2.1, 0.25);
-  add(neonLight);
+  // neon "open" inside the upper left of the window
+  const neonMat = new THREE.MeshBasicMaterial({
+    map: ctex.neon, transparent: true, depthWrite: false, toneMapped: false, color: new THREE.Color(2.4, 2.4, 2.4), blending: THREE.AdditiveBlending,
+  });
+  add(mesh(new THREE.PlaneGeometry(0.95, 0.48), neonMat, -1.65, 2.1, -0.16, 'none'));
+  const neonLight = add(new THREE.PointLight('#ff3048', 2.2, 4.5, 2));
+  neonLight.position.set(-1.65, 2.1, 0.3);
 
-  // Door frame, transom with "265", and the door leaf on a hinge (right side, like the real door)
-  const dcx = (DOOR.x0 + DOOR.x1) / 2, dw = DOOR.x1 - DOOR.x0;
-  frameBar(DOOR.x0 + 0.04, DOOR.transom / 2, 0.08, DOOR.transom);
-  frameBar(DOOR.x1 - 0.04, DOOR.transom / 2, 0.08, DOOR.transom);
-  frameBar(dcx, DOOR.transom - 0.04, dw, 0.08);
-  frameBar(dcx, DOOR.top + 0.03, dw, 0.07);
-  add(mesh(new THREE.PlaneGeometry(dw - 0.1, DOOR.transom - DOOR.top - 0.1), glass, dcx, (DOOR.top + DOOR.transom) / 2, -0.05, 'none'));
-  const transomNum = new THREE.MeshBasicMaterial({ map: tx.transom, transparent: true, depthWrite: false, color: new THREE.Color(1.1, 1.1, 1.1) });
-  add(mesh(new THREE.PlaneGeometry(0.9, 0.45), transomNum, dcx, (DOOR.top + DOOR.transom) / 2, -0.035, 'none'));
-
+  // the door leaf, hinged on the right like the real door
   const hingeX = DOOR.x1 - 0.08;
-  const doorPivot = new THREE.Group();
+  const doorPivot = add(new THREE.Group());
   doorPivot.position.set(hingeX, 0, -0.05);
-  add(doorPivot);
   {
     const lw = hingeX - (DOOR.x0 + 0.08), lh = DOOR.top - 0.02;
     const g = new THREE.Group();
     g.position.x = -lw / 2;
-    const fb = (x: number, y: number, w: number, h: number) => {
-      const m = mesh(box(w, h, 0.06), alu, x, y, 0);
-      g.add(m);
-    };
-    fb(0, 0.12, lw, 0.24); // kick rail
+    const fb = (x: number, y: number, w: number, h: number) => g.add(mesh(rbox(w, h, 0.06, 0.008, 2), alu, x, y, 0));
+    fb(0, 0.12, lw, 0.24);
     fb(0, lh - 0.05, lw, 0.1);
     fb(-lw / 2 + 0.05, lh / 2, 0.1, lh);
     fb(lw / 2 - 0.05, lh / 2, 0.1, lh);
-    fb(0, 1.0, lw, 0.06);
-    const gl = mesh(new THREE.PlaneGeometry(lw - 0.2, lh - 0.36), glass, 0, lh / 2 + 0.07, 0, 'none');
-    g.add(gl);
-    // vertical pull handle on the latch side (left), both faces
+    g.add(mesh(new THREE.PlaneGeometry(lw - 0.2, lh - 0.36), glass, 0, lh / 2 + 0.07, 0, 'none'));
     for (const s of [1, -1]) {
-      const h = mesh(cyl(0.016, 0.016, 0.42, 12), chrome, -lw / 2 + 0.16, 1.05, s * 0.07);
-      g.add(h);
+      g.add(mesh(cyl(0.016, 0.016, 0.42, 16), chrome, -lw / 2 + 0.16, 1.05, s * 0.07));
       for (const yy of [0.86, 1.24]) g.add(mesh(cyl(0.01, 0.01, 0.07, 8), chrome, -lw / 2 + 0.16, yy, s * 0.04).rotateX(Math.PI / 2));
     }
+    // closer arm at the top
+    g.add(mesh(rbox(0.3, 0.06, 0.06, 0.01), alu, lw / 2 - 0.3, lh - 0.06, -0.08));
     doorPivot.add(g);
   }
 
-  // Twin flood light above the door
+  // twin flood light on the stucco above the door
+  const floodBase = std({ color: '#b9b4ab', roughness: 0.55 });
   {
-    const base = mesh(cyl(0.07, 0.07, 0.05, 16), std({ color: '#b9b4ab', roughness: 0.6 }), dcx - 0.25, BAND + 0.1, 0.03);
-    base.rotation.x = Math.PI / 2;
-    add(base);
+    const bx = (DOOR.x0 + DOOR.x1) / 2 - 0.25;
+    add(mesh(cyl(0.07, 0.07, 0.05, 20), floodBase, bx, BAND + 0.38, 0.03).rotateX(Math.PI / 2));
     for (const s of [-1, 1]) {
-      const head = mesh(new THREE.SphereGeometry(0.075, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#b9b4ab', roughness: 0.6, side: THREE.DoubleSide }), dcx - 0.25 + s * 0.14, BAND + 0.04, 0.13);
+      const head = mesh(new THREE.SphereGeometry(0.075, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#b9b4ab', roughness: 0.55, side: THREE.DoubleSide }), bx + s * 0.14, BAND + 0.32, 0.13);
       head.rotation.x = Math.PI * 0.7;
       add(head);
     }
   }
 
-  // Barber pole on the brick right of the door
-  const pole = new THREE.Group();
-  pole.position.set(2.98, 2.0, 0.17);
-  add(pole);
-  const poleTex = tx.pole;
+  // barber pole on the brick right of the door
+  const pole = add(new THREE.Group());
+  pole.position.set(2.98, 1.95, 0.17);
+  const poleTex = ctex.pole;
   poleTex.wrapS = poleTex.wrapT = THREE.RepeatWrapping;
   poleTex.repeat.set(1, 1.6);
-  const stripeMat = std({ map: poleTex, emissiveMap: poleTex, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.45, roughness: 0.35 });
-  pole.add(mesh(cyl(0.085, 0.085, 0.72, 32), stripeMat, 0, 0, 0, 'cast'));
-  pole.add(mesh(cyl(0.1, 0.1, 0.72, 32, ), new THREE.MeshPhysicalMaterial({ color: '#ffffff', transparent: true, opacity: 0.12, roughness: 0.02, envMapIntensity: 2, depthWrite: false }), 0, 0, 0, 'none'));
-  const capProfile = [new THREE.Vector2(0, 0), new THREE.Vector2(0.115, 0), new THREE.Vector2(0.125, 0.03), new THREE.Vector2(0.11, 0.06), new THREE.Vector2(0.12, 0.1), new THREE.Vector2(0.1, 0.14), new THREE.Vector2(0.06, 0.16), new THREE.Vector2(0, 0.17)];
-  const capGeo = new THREE.LatheGeometry(capProfile, 32);
-  const capTop = mesh(capGeo, chrome, 0, 0.36, 0, 'cast');
-  pole.add(capTop);
-  const capBot = mesh(capGeo, chrome, 0, -0.36, 0, 'cast');
-  capBot.rotation.x = Math.PI;
-  pole.add(capBot);
-  const globeMat = std({ color: '#ffffff', emissive: new THREE.Color('#fff4e6'), emissiveIntensity: 1.6, roughness: 0.2 });
-  pole.add(mesh(new THREE.SphereGeometry(0.13, 32, 20), globeMat, 0, 0.64, 0, 'none'));
-  pole.add(mesh(box(0.05, 0.05, 0.17), chrome, 0, 0.2, -0.09));
-  pole.add(mesh(box(0.05, 0.05, 0.17), chrome, 0, -0.2, -0.09));
-  const poleLight = new THREE.PointLight('#ffeedd', 1.2, 3, 2);
-  poleLight.position.set(2.98, 2.7, 0.4);
-  add(poleLight);
-  // Mailbox with 265
-  add(mesh(rbox(0.32, 0.4, 0.14, 0.02), std({ color: '#121212', roughness: 0.4, metalness: 0.3 }), 2.98, 1.0, 0.07));
+  pole.add(mesh(cyl(0.085, 0.085, 0.72, 40), std({ map: poleTex, emissiveMap: poleTex, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.5, roughness: 0.3 }), 0, 0, 0, 'cast'));
+  pole.add(mesh(cyl(0.1, 0.1, 0.72, 40), new THREE.MeshPhysicalMaterial({ color: '#ffffff', transparent: true, opacity: 0.1, roughness: 0.02, envMapIntensity: 2.5, depthWrite: false }), 0, 0, 0, 'none'));
+  const capGeo = new THREE.LatheGeometry([
+    new THREE.Vector2(0, 0), new THREE.Vector2(0.115, 0), new THREE.Vector2(0.125, 0.03), new THREE.Vector2(0.11, 0.06),
+    new THREE.Vector2(0.12, 0.1), new THREE.Vector2(0.1, 0.14), new THREE.Vector2(0.06, 0.16), new THREE.Vector2(0, 0.17),
+  ], 40);
+  pole.add(mesh(capGeo, chrome, 0, 0.36, 0, 'cast'));
+  pole.add(mesh(capGeo, chrome, 0, -0.36, 0, 'cast').rotateX(Math.PI));
+  pole.add(mesh(new THREE.SphereGeometry(0.13, 40, 24), std({ color: '#ffffff', emissive: new THREE.Color('#fff4e6'), emissiveIntensity: 1.8, roughness: 0.2 }), 0, 0.64, 0, 'none'));
+  for (const yy of [0.2, -0.2]) pole.add(mesh(box(0.05, 0.05, 0.17), chrome, 0, yy, -0.09));
+  const poleLight = add(new THREE.PointLight('#ffeedd', 1.2, 3, 2));
+  poleLight.position.set(2.98, 2.65, 0.4);
+  // mailbox "265" under the pole
+  add(mesh(rbox(0.3, 0.42, 0.14, 0.02), std({ color: '#121212', roughness: 0.35, metalness: 0.35 }), 2.98, 0.98, 0.07));
 
-  // Window plants (white pots), as seen in the real window
-  const potMat = std({ color: '#efefec', roughness: 0.5 });
-  const leafMat = std({ color: '#3f6b2f', roughness: 0.7, side: THREE.DoubleSide });
-  const plant = (x: number, z: number, s: number) => {
+  // window plants in white pots, as in the real window
+  const potMat = std({ color: '#f0efec', roughness: 0.45 });
+  const leafMat = std({ color: '#3f6b2f', roughness: 0.6, side: THREE.DoubleSide });
+  const plant = (x: number, z: number, s: number, grass = false) => {
     const g = new THREE.Group();
-    g.position.set(x, 0.47, z);
-    g.add(mesh(cyl(0.13 * s, 0.1 * s, 0.26 * s, 20), potMat, 0, 0.13 * s, 0));
-    for (let i = 0; i < 14; i++) {
-      const leaf = mesh(new THREE.SphereGeometry(0.05, 8, 6), leafMat, 0, 0.3 * s, 0);
-      leaf.scale.set(0.5 * s, 3.4 * s, 0.12 * s);
-      const a = (i / 14) * Math.PI * 2;
-      leaf.rotation.set(Math.sin(a) * 0.6, a, Math.cos(a) * 0.6);
-      leaf.position.set(Math.sin(a) * 0.06, 0.38 * s, Math.cos(a) * 0.06);
+    g.position.set(x, 0.46, z);
+    g.add(mesh(cyl(0.13 * s, 0.1 * s, 0.26 * s, 24), potMat, 0, 0.13 * s, 0));
+    const n = grass ? 34 : 14;
+    for (let i = 0; i < n; i++) {
+      const leaf = mesh(new THREE.SphereGeometry(0.05, 10, 6), grass ? std({ color: '#6f8f4a', roughness: 0.7 }) : leafMat, 0, 0.3 * s, 0, 'cast');
+      leaf.scale.set((grass ? 0.12 : 0.5) * s, (grass ? 7 : 3.4) * s, 0.12 * s);
+      const a = (i / n) * Math.PI * 2 + i;
+      const tilt = grass ? 0.25 : 0.6;
+      leaf.rotation.set(Math.sin(a) * tilt, a, Math.cos(a) * tilt);
+      leaf.position.set(Math.sin(a) * 0.05, (grass ? 0.55 : 0.38) * s, Math.cos(a) * 0.05);
       g.add(leaf);
     }
     add(g);
   };
-  plant(-1.9, -0.45, 1.1);
-  plant(-0.45, -0.5, 1.0);
-  plant(-2.85, -0.4, 0.75);
+  plant(-1.4, -0.45, 1.1);
+  plant(0.1, -0.5, 1.0, true);
+  plant(-2.2, -0.4, 0.75);
 
-  /* ---------------- Neighbor storefronts (unbranded) ---------------- */
-  const neighbor = (x0: number, x1: number, dx0: number, dx1: number, tint: string) => {
-    const w = x1 - x0;
-    add(mesh(new THREE.PlaneGeometry(w, 2.05), glass, (x0 + x1) / 2, 1.475, -0.04, 'none'));
-    frameBar((x0 + x1) / 2, 0.49, w, 0.08);
-    frameBar((x0 + x1) / 2, 2.46, w, 0.08);
-    frameBar(x0 + 0.04, 1.475, 0.08, 2.05);
-    frameBar(x1 - 0.04, 1.475, 0.08, 2.05);
-    const glow = mesh(new THREE.PlaneGeometry(w - 0.2, 1.9), new THREE.MeshBasicMaterial({ color: new THREE.Color(tint), toneMapped: true }), (x0 + x1) / 2, 1.475, -0.9, 'none');
-    add(glow);
-    add(mesh(new THREE.PlaneGeometry(dx1 - dx0, 2.4), new THREE.MeshBasicMaterial({ color: new THREE.Color(tint).multiplyScalar(0.7) }), (dx0 + dx1) / 2, 1.2, -0.9, 'none'));
-    frameBar(dx0 + 0.04, 1.22, 0.08, 2.45);
-    frameBar(dx1 - 0.04, 1.22, 0.08, 2.45);
-    add(mesh(new THREE.PlaneGeometry(dx1 - dx0, 2.4), glass, (dx0 + dx1) / 2, 1.2, -0.04, 'none'));
+  /* ================= Neighbours (no names or logos) ================= */
+  const fakeInterior = (x0: number, x1: number, tex: THREE.Texture, depth = 1.0) => {
+    const m = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(1.5, 1.5, 1.5) });
+    add(mesh(new THREE.PlaneGeometry(x1 - x0, 2.6), m, (x0 + x1) / 2, 1.3, -depth, 'none'));
   };
-  neighbor(-9.6, -5.2, -4.95, -3.85, '#1d2229');
-  neighbor(5.25, 9.9, 4.0, 4.95, '#2a1d17');
-  // Fabric awning on the right neighbor
-  {
-    const awn = mesh(box(4.8, 0.06, 0.9), std({ color: '#3b261c', roughness: 0.9 }), 7.57, 2.95, 0.42);
-    awn.rotation.x = 0.35;
-    add(awn);
-    add(mesh(box(4.8, 0.25, 0.04), std({ color: '#3b261c', roughness: 0.9 }), 7.57, 2.68, 0.86));
+  // left: dog groomer
+  storefrontWindow(-9.7, -5.3, 0.42, 2.55, [-7.5]);
+  doorFrame(-5.0, -3.95, 2.42, 2.95);
+  add(mesh(new THREE.PlaneGeometry(4.2, 2.0), new THREE.MeshStandardMaterial({ map: ctex.dogs, transparent: true, roughness: 0.6, alphaTest: 0.05 }), -7.5, 1.5, -0.05, 'none'));
+  fakeInterior(-9.7, -3.95, ctex.shopCool, 1.1);
+  add(mesh(new THREE.PlaneGeometry(0.9, 2.3), glass, -4.48, 1.2, -0.05, 'none'));
+  // right: day spa with brown sign panel and two gooseneck lights
+  storefrontWindow(3.9, 8.4, 0.42, 2.55, [6.15]);
+  doorFrame(8.7, 9.75, 2.42, 2.95);
+  fakeInterior(3.9, 9.75, ctex.shopWarm, 1.1);
+  add(mesh(new THREE.PlaneGeometry(0.9, 2.3), glass, 9.22, 1.2, -0.05, 'none'));
+  add(mesh(rbox(4.9, 0.62, 0.12, 0.02), std({ map: ctex.spa, roughness: 0.75 }), 6.15, 2.95, 0.07));
+  const goose: THREE.Vector3[] = [];
+  for (const gx of [4.9, 7.4]) {
+    const arm = new THREE.CatmullRomCurve3([new THREE.Vector3(gx, 3.45, 0.02), new THREE.Vector3(gx, 3.62, 0.25), new THREE.Vector3(gx, 3.55, 0.45)]);
+    add(mesh(new THREE.TubeGeometry(arm, 12, 0.012, 8), blackMetal, 0, 0, 0, 'cast'));
+    add(mesh(new THREE.ConeGeometry(0.09, 0.12, 20, 1, true), std({ color: '#151515', roughness: 0.4, metalness: 0.5, side: THREE.DoubleSide }), gx, 3.5, 0.48, 'cast'));
+    goose.push(new THREE.Vector3(gx, 3.45, 0.5));
   }
 
-  /* ---------------- Street props ---------------- */
-  // Street lamp (black post, globe), like the one on the real block
-  const lampMat = std({ color: '#0d0d0e', roughness: 0.4, metalness: 0.5 });
-  const lamp = new THREE.Group();
-  lamp.position.set(-6.6, 0, 8.25);
-  lamp.add(mesh(cyl(0.16, 0.22, 0.6, 16), lampMat, 0, 0.3, 0));
-  lamp.add(mesh(cyl(0.06, 0.08, 3.6, 16), lampMat, 0, 2.2, 0));
-  lamp.add(mesh(cyl(0.12, 0.07, 0.18, 16), lampMat, 0, 4.05, 0));
-  const lampGlobe = mesh(new THREE.SphereGeometry(0.26, 24, 16), new THREE.MeshStandardMaterial({ color: '#fff', emissive: new THREE.Color('#ffd9a8'), emissiveIntensity: 3, roughness: 0.3 }), 0, 4.38, 0, 'none');
+  /* ================= Left: metal-sided building + parking ================= */
+  {
+    const bx0 = -26, bx1 = -11.4, bz0 = -15, bz1 = -2.5, bh = 4.4;
+    wbox(bx1 - bx0, bh, bz1 - bz0, M.metalSiding, (bx0 + bx1) / 2, bh / 2, (bz0 + bz1) / 2, 1.2, 'both', Math.PI / 2);
+    add(mesh(box(bx1 - bx0 + 0.3, 0.25, bz1 - bz0 + 0.3), white, (bx0 + bx1) / 2, bh + 0.12, (bz0 + bz1) / 2));
+    // roll-up door + small sign board (blank)
+    add(mesh(box(3.2, 3.0, 0.05), std({ color: '#c8cacb', roughness: 0.6, metalness: 0.3 }), -14.5, 1.5, bz1 + 0.03));
+    add(mesh(box(1.6, 0.9, 0.06), std({ color: '#1d3f8a', roughness: 0.6 }), -18, 3.2, bz1 + 0.04));
+    // white fence along the lot
+    for (let fx = -16; fx <= -10.8; fx += 0.12) add(mesh(box(0.08, 1.15, 0.03), white, fx, 0.6, 4.2, 'cast'));
+    add(mesh(box(5.4, 0.08, 0.05), white, -13.4, 1.0, 4.2));
+    // parking bay lines
+    for (let px = -24; px < -11; px += 2.7) add(mesh(box(0.1, 0.004, 4.8), std({ color: '#d8d6cf', roughness: 0.8 }), px, 0.004, 1.0, 'receive'));
+  }
+
+  /* ================= Right: hedge and white house ================= */
+  const hedgeMat = std({ color: '#2b3a22', roughness: 1 });
+  {
+    // a long clipped hedge with a lumpy top, from the strip's right corner along the lot line
+    const hg = new RoundedBoxGeometry(18, 1.6, 1.4, 4, 0.5);
+    const p = hg.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      const n = Math.sin(x * 2.3) * 0.06 + Math.sin(x * 5.1 + z * 3) * 0.04 + Math.sin(z * 4.2 + y) * 0.03;
+      p.setXYZ(i, x, y + (y > 0 ? n : 0), z + (Math.abs(z) > 0.5 ? n : 0));
+    }
+    hg.computeVertexNormals();
+    add(mesh(hg, hedgeMat, 22.5, 0.8, 0.6));
+    // white two-storey house, gable end to the street
+    const hx0 = 15.5, hx1 = 23.5, hz0 = -14, hz1 = -4, wallH = 5.6;
+    wbox(hx1 - hx0, wallH, hz1 - hz0, M.siding, (hx0 + hx1) / 2, wallH / 2, (hz0 + hz1) / 2, 1.2);
+    const gable = new THREE.Shape();
+    gable.moveTo(-(hx1 - hx0) / 2 - 0.4, 0);
+    gable.lineTo((hx1 - hx0) / 2 + 0.4, 0);
+    gable.lineTo(0, 3.0);
+    gable.closePath();
+    const gGeo = new THREE.ExtrudeGeometry(gable, { depth: hz1 - hz0 + 0.8, bevelEnabled: false });
+    add(mesh(worldUV(gGeo, 1.2, new THREE.Vector3((hx0 + hx1) / 2, wallH, hz0 - 0.4)), M.siding, (hx0 + hx1) / 2, wallH, hz0 - 0.4));
+    // roof planes
+    const rl = Math.hypot((hx1 - hx0) / 2 + 0.5, 3.0) + 0.2;
+    const ang = Math.atan2(3.0, (hx1 - hx0) / 2 + 0.5);
+    for (const s of [-1, 1]) {
+      const r = mesh(worldUV(box(rl, 0.12, hz1 - hz0 + 1.2), 1.2), M.shingles, (hx0 + hx1) / 2 + s * (rl / 2) * Math.cos(ang) - s * 0.05, wallH + 1.5 + 0.08, (hz0 + hz1) / 2);
+      r.rotation.z = -s * ang;
+      add(r);
+    }
+    // windows with warm light in a couple of them
+    const winLit = new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffcf8a').multiplyScalar(1.1) });
+    const winDark = std({ color: '#1b2026', roughness: 0.1, metalness: 0.4 });
+    const hwin = (x: number, y: number, lit: boolean) => {
+      add(mesh(box(1.0, 1.35, 0.06), white, x, y, hz1 + 0.04));
+      add(mesh(new THREE.PlaneGeometry(0.84, 1.18), lit ? winLit : winDark, x, y, hz1 + 0.08, 'none'));
+      add(mesh(box(0.84, 0.04, 0.02), white, x, y, hz1 + 0.09));
+    };
+    hwin(17.5, 1.7, true);
+    hwin(21.5, 1.7, false);
+    hwin(17.5, 4.3, false);
+    hwin(21.5, 4.3, true);
+    hwin(19.5, 6.6, false);
+    // small porch roof on the left side
+    add(mesh(worldUV(box(3.2, 0.1, 3.0), 1.2), M.shingles, 14.2, 2.9, -6.5).rotateZ(0.25));
+    for (const px of [12.9, 15.4]) add(mesh(cyl(0.06, 0.06, 2.8, 12), white, px, 1.4, -5.2));
+  }
+
+  /* ================= Trees and shrubs (ez-tree, baked) ================= */
+  const treeLib: Record<string, THREE.Object3D> = {};
+  A.trees.traverse((c) => { if (c.parent === A.trees || (c.parent && c.parent.parent === A.trees && !treeLib[c.name] && !(c as THREE.Mesh).isMesh)) treeLib[c.name] = c; });
+  const leafMats: THREE.MeshStandardMaterial[] = [];
+  A.trees.traverse((o) => {
+    const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+    if (!m) return;
+    if (m.alphaTest > 0) {
+      m.side = THREE.DoubleSide;
+      if (!leafMats.includes(m)) leafMats.push(m);
+    }
+    m.roughness = 0.9;
+  });
+  const placeTree = (name: string, x: number, z: number, scale = 1, ry = 0, shadow = true) => {
+    const src = treeLib[name];
+    if (!src) return;
+    const t = src.clone(true);
+    t.position.set(x, 0, z);
+    t.scale.setScalar(scale);
+    t.rotation.y = ry;
+    t.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) {
+        o.castShadow = shadow;
+        o.receiveShadow = true;
+      }
+    });
+    add(t);
+    return t;
+  };
+  // tall pines behind the centre-right of the strip
+  placeTree('pineA', 2.5, -16, 1.0, 0.3);
+  placeTree('pineB', 6.0, -18.5, 1.05, 1.9);
+  placeTree('pineC', -0.5, -19.5, 1.2, 0.9, quality === 'high');
+  placeTree('pineB', 9.5, -15.5, 0.85, 2.6, quality === 'high');
+  // big bare deciduous trees behind the left
+  placeTree('oakBareA', -8.5, -18, 1.0, 0.4);
+  placeTree('oakBareB', -14, -14, 1.1, 2.2, quality === 'high');
+  placeTree('oakBareA', -3.5, -24, 1.15, 4.1, false);
+  // street tree behind the lamp at the left end of the sidewalk
+  placeTree('streetTree', -11.3, 5.6, 1.0, 0.8);
+  // right: bare tree and red Japanese maple in front of the house, more pines behind it
+  placeTree('ashBare', 16.2, -2.2, 0.9, 1.1);
+  placeTree('maple', 19.8, -1.6, 1.0, 0.2);
+  placeTree('pineA', 26, -20, 1.0, 1.2, false);
+  placeTree('oakBareB', 28, -10, 1.0, 0.7, false);
+  // shrubs at the strip corners, like the burgundy bush on the left corner
+  placeTree('bushRed', -10.6, 1.4, 1.0, 0.2);
+  placeTree('bushGreen', -10.9, 3.3, 1.0, 1.5);
+  placeTree('bushDark', 11.4, 0.6, 1.2, 0.8);
+  placeTree('bushGreen', -8.9, 0.75, 0.6, 2.4);
+
+  // wind sway for leaves (vertex shader tweak)
+  const wind = { value: 0 };
+  for (const m of leafMats) {
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uWind = wind;
+      sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+         vec4 wp = modelMatrix * vec4(position, 1.0);
+         float sway = sin(uWind * 1.3 + wp.x * 0.35 + wp.z * 0.2) * 0.04 + sin(uWind * 3.1 + wp.y * 1.7) * 0.015;
+         transformed.x += sway * position.y * 0.06;
+         transformed.z += sway * position.y * 0.04;`,
+      );
+    };
+  }
+
+  /* ================= Street furniture ================= */
+  // black ornamental lamp post with a globe lantern (left end of the sidewalk)
+  const lampMat = std({ color: '#0c0c0d', roughness: 0.35, metalness: 0.55 });
+  const lamp = add(new THREE.Group());
+  lamp.position.set(-11.9, 0, 6.55);
+  lamp.add(mesh(new THREE.LatheGeometry([
+    new THREE.Vector2(0, 0), new THREE.Vector2(0.24, 0), new THREE.Vector2(0.24, 0.12), new THREE.Vector2(0.17, 0.2),
+    new THREE.Vector2(0.15, 0.55), new THREE.Vector2(0.12, 0.62), new THREE.Vector2(0.075, 0.7), new THREE.Vector2(0.06, 0.72), new THREE.Vector2(0, 0.72),
+  ], 32), lampMat, 0, 0, 0));
+  lamp.add(mesh(cyl(0.055, 0.07, 3.2, 20), lampMat, 0, 2.3, 0));
+  lamp.add(mesh(new THREE.LatheGeometry([
+    new THREE.Vector2(0, 0), new THREE.Vector2(0.06, 0), new THREE.Vector2(0.14, 0.12), new THREE.Vector2(0.12, 0.2), new THREE.Vector2(0, 0.2),
+  ], 24), lampMat, 0, 3.88, 0));
+  const lampGlobe = mesh(new THREE.SphereGeometry(0.27, 40, 24), std({ color: '#fff', emissive: new THREE.Color('#ffd9a8'), emissiveIntensity: 3.2, roughness: 0.35 }), 0, 4.33, 0, 'none');
   lamp.add(lampGlobe);
-  lamp.add(mesh(cyl(0.03, 0.12, 0.12, 16), lampMat, 0, 4.66, 0));
-  add(lamp);
+  lamp.add(mesh(new THREE.LatheGeometry([new THREE.Vector2(0.0, 0.18), new THREE.Vector2(0.1, 0.12), new THREE.Vector2(0.06, 0.0), new THREE.Vector2(0, 0)], 20), lampMat, 0, 4.56, 0));
 
-  // Fire hydrant
+  // fire hydrant (red body, white bonnet) at the curb in front of the shop
   {
-    const h = new THREE.Group();
-    h.position.set(0.9, 0, 8.55);
-    const red = std({ color: '#b3231c', roughness: 0.5 });
-    const whiteCap = std({ color: '#e8e2d2', roughness: 0.5 });
-    h.add(mesh(cyl(0.13, 0.15, 0.08, 20), red, 0, 0.04, 0));
-    h.add(mesh(cyl(0.11, 0.12, 0.5, 20), red, 0, 0.32, 0));
-    h.add(mesh(cyl(0.13, 0.13, 0.05, 20), red, 0, 0.58, 0));
-    h.add(mesh(new THREE.SphereGeometry(0.11, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), whiteCap, 0, 0.6, 0));
-    for (const s of [-1, 1]) h.add(mesh(cyl(0.045, 0.045, 0.1, 12), red, s * 0.15, 0.4, 0).rotateZ(Math.PI / 2));
-    h.add(mesh(cyl(0.06, 0.06, 0.1, 12), red, 0, 0.38, 0.13).rotateX(Math.PI / 2));
-    add(h);
-  }
-  // Shrubs at the ends
-  const shrubMat = std({ color: '#141c12', roughness: 1 });
-  for (const [x, z, s] of [[-12.6, 1.4, 1.3], [-13.6, 2.6, 1.0], [12.8, 1.2, 1.2], [14.0, 2.4, 1.4], [-8.6, 0.9, 0.7]] as const) {
-    const b = mesh(new THREE.IcosahedronGeometry(s, 1), shrubMat, x, s * 0.6, z);
-    b.scale.y = 0.75;
-    add(b);
+    const h = add(new THREE.Group());
+    h.position.set(0.25, 0, 8.05);
+    const red = new THREE.MeshPhysicalMaterial({ color: '#b3231c', roughness: 0.4, clearcoat: 0.6, clearcoatRoughness: 0.4 });
+    const cap = new THREE.MeshPhysicalMaterial({ color: '#efe9dc', roughness: 0.4, clearcoat: 0.5 });
+    const prof = [
+      [0, 0], [0.16, 0], [0.16, 0.05], [0.13, 0.08], [0.12, 0.12], [0.115, 0.5], [0.14, 0.53], [0.14, 0.58], [0.12, 0.6], [0, 0.6],
+    ].map(([a, b]) => new THREE.Vector2(a, b));
+    h.add(mesh(new THREE.LatheGeometry(prof, 32), red, 0, 0, 0));
+    h.add(mesh(new THREE.SphereGeometry(0.12, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), cap, 0, 0.6, 0));
+    h.add(mesh(cyl(0.025, 0.035, 0.06, 6), cap, 0, 0.74, 0));
+    for (const s of [-1, 1]) h.add(mesh(cyl(0.045, 0.05, 0.12, 20), red, s * 0.16, 0.38, 0).rotateZ(Math.PI / 2));
+    h.add(mesh(cyl(0.065, 0.07, 0.12, 24), red, 0, 0.36, 0.14).rotateX(Math.PI / 2));
+    for (const s of [-1, 1]) h.add(mesh(cyl(0.03, 0.03, 0.03, 6), cap, s * 0.235, 0.38, 0).rotateZ(Math.PI / 2));
   }
 
-  /* ---------------- Interior ---------------- */
-  const IX0 = -3.4, IX1 = 3.6, IZ1 = -11, IH = 2.9;
-  const interior = new THREE.Group();
-  root.add(interior);
-  const iadd = (o: THREE.Object3D) => (interior.add(o), o);
+  // the shop's BARBER feather flag in the gravel, with cloth wave
+  const flagTime = { value: 0 };
+  {
+    const f = add(new THREE.Group());
+    f.position.set(-2.0, 0, 3.4);
+    f.rotation.y = 0.25;
+    const fg = new THREE.PlaneGeometry(0.62, 2.5, 8, 32);
+    fg.translate(0.31, 1.25 + 0.55, 0);
+    const fm = new THREE.MeshStandardMaterial({ map: ctex.flag, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.75 });
+    fm.onBeforeCompile = (sh) => {
+      sh.uniforms.uT = flagTime;
+      sh.vertexShader = 'uniform float uT;\n' + sh.vertexShader.replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+         float k = position.x / 0.62;
+         float w = sin(uT * 2.4 + position.y * 2.2 - k * 3.0) * 0.07 + sin(uT * 4.1 + position.y * 4.0) * 0.02;
+         transformed.z += w * k;
+         transformed.x -= abs(w) * k * 0.3;`,
+      ).replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+         float kk = position.x / 0.62;
+         objectNormal = normalize(objectNormal + vec3(-cos(uT * 2.4 + position.y * 2.2 - kk * 3.0) * 0.25 * kk, 0.0, 0.0));`);
+    };
+    const flag = mesh(fg, fm, 0, 0, 0, 'cast');
+    flag.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: ctex.flag, alphaTest: 0.5 });
+    f.add(flag);
+    f.add(mesh(cyl(0.012, 0.016, 3.1, 10), std({ color: '#aaa', metalness: 0.8, roughness: 0.3 }), 0, 1.55, 0));
+    f.add(mesh(new THREE.TorusGeometry(0.31, 0.008, 6, 24, Math.PI * 0.6), std({ color: '#aaa', metalness: 0.8, roughness: 0.3 }), 0.31, 2.95, 0).rotateZ(0.3));
+  }
 
-  // floor
-  const floorMat = std({ map: rep(tx.floor, 7 / 1.4, 11 / 1.4), roughness: 0.42, metalness: 0.0 });
-  const fl = mesh(new THREE.PlaneGeometry(IX1 - IX0, -IZ1), floorMat, (IX0 + IX1) / 2, 0.005, IZ1 / 2, 'receive');
-  fl.rotation.x = -Math.PI / 2;
-  iadd(fl);
-  // ceiling
-  const ceilMat = std({ map: rep(tx.ceiling, (IX1 - IX0) / 0.6, -IZ1 / 0.6), roughness: 0.95 });
-  const ce = mesh(new THREE.PlaneGeometry(IX1 - IX0, -IZ1), ceilMat, (IX0 + IX1) / 2, IH, IZ1 / 2, 'none');
+  // utility poles and sagging wires overhead (they cross the real view)
+  {
+    const woodPole = std({ color: '#4a3a2c', roughness: 0.95 });
+    const wireMat = new THREE.MeshBasicMaterial({ color: '#08090a' });
+    const polesX = [-48, -18.5, 17.5, 46];
+    const pz = 8.35;
+    for (const x of polesX) {
+      add(mesh(cyl(0.13, 0.17, 10.5, 14), woodPole, x, 5.25, pz));
+      add(mesh(box(2.2, 0.12, 0.12), woodPole, x, 9.3, pz));
+      add(mesh(box(1.4, 0.1, 0.1), woodPole, x, 8.1, pz));
+      add(mesh(cyl(0.22, 0.22, 0.7, 14), std({ color: '#5d6266', roughness: 0.6, metalness: 0.4 }), x + 0.35, 7.4, pz - 0.2, 'cast'));
+    }
+    const wires: [number, number][] = [[-1.0, 9.38], [-0.35, 9.38], [0.35, 9.38], [1.0, 9.38], [-0.6, 8.18], [0.6, 8.18], [0, 6.9]];
+    for (let i = 0; i < polesX.length - 1; i++) {
+      for (const [dz, wy] of wires) {
+        const a = new THREE.Vector3(polesX[i], wy, pz + dz), b = new THREE.Vector3(polesX[i + 1], wy, pz + dz);
+        const pts: THREE.Vector3[] = [];
+        for (let k = 0; k <= 24; k++) {
+          const t = k / 24;
+          const p = a.clone().lerp(b, t);
+          p.y -= Math.sin(t * Math.PI) * 0.9;
+          pts.push(p);
+        }
+        add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.012, 5), wireMat, 0, 0, 0, 'none'));
+      }
+    }
+    // service drop crossing to the strip roof
+    const drop = new THREE.CatmullRomCurve3([new THREE.Vector3(17.5, 8.1, pz), new THREE.Vector3(14, 6.6, 4.5), new THREE.Vector3(X1 - 0.5, FASCIA + 0.9, -2)]);
+    add(mesh(new THREE.TubeGeometry(drop, 32, 0.012, 5), wireMat, 0, 0, 0, 'none'));
+  }
+
+  // fallen leaves scattered on the sidewalk and curb, as in the November Street View
+  {
+    const leafTex = (leafMats[0]?.map as THREE.Texture | null) ?? null;
+    const lm = new THREE.MeshStandardMaterial({ map: leafTex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9, color: '#a8643a' });
+    const count = quality === 'high' ? 900 : 450;
+    const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.11, 0.11), lm, count);
+    const o = new THREE.Object3D();
+    const col = new THREE.Color();
+    const tones = ['#b07040', '#8c4a26', '#c08a48', '#7a3a20', '#a85a2e', '#6f4a2a'];
+    for (let i = 0; i < count; i++) {
+      const edge = Math.random() < 0.55;
+      const x = (Math.random() - 0.5) * 60;
+      const z = edge ? 8.3 + Math.random() * 0.9 : SW0 + Math.random() * (SW1 - SW0);
+      o.position.set(x, (z > 8.6 ? -0.11 : 0.008) + Math.random() * 0.004, z);
+      o.rotation.set(-Math.PI / 2 + (Math.random() - 0.5) * 0.4, 0, Math.random() * Math.PI * 2);
+      const s = 0.7 + Math.random() * 0.7;
+      o.scale.set(s, s, s);
+      o.updateMatrix();
+      im.setMatrixAt(i, o.matrix);
+      im.setColorAt(i, col.set(tones[i % tones.length]));
+    }
+    im.receiveShadow = true;
+    add(im);
+  }
+
+  /* ================= Interior ================= */
+  const IX0 = -2.7, IX1 = 3.45, IH = 2.9;
+  const interior = add(new THREE.Group());
+  const iadd = <O extends THREE.Object3D>(o: O) => (interior.add(o), o);
+  const iw = (w: number, h: number, d: number, mat: THREE.Material, x: number, y: number, z: number, tile: number, sh: Shadow = 'receive') =>
+    iadd(mesh(worldUV(box(w, h, d), tile, new THREE.Vector3(x, y, z)), mat, x, y, z, sh));
+
+  iw(IX1 - IX0, 0.02, -IZ1, M.floor, (IX0 + IX1) / 2, -0.005, IZ1 / 2, 2.4);
+  const ceilTex = ctex.ceiling;
+  ceilTex.wrapS = ceilTex.wrapT = THREE.RepeatWrapping;
+  ceilTex.repeat.set((IX1 - IX0) / 0.6, -IZ1 / 0.6);
+  const ce = iadd(mesh(new THREE.PlaneGeometry(IX1 - IX0, -IZ1), std({ map: ceilTex, roughness: 0.95 }), (IX0 + IX1) / 2, IH, IZ1 / 2, 'none'));
   ce.rotation.x = Math.PI / 2;
-  iadd(ce);
-  // walls
-  const grey = std({ color: '#8e908f', roughness: 0.9 });
-  const woodMat = std({ map: rep(tx.wood, -IZ1 / 6.5, 1), roughness: 0.78 });
-  const lw = mesh(new THREE.PlaneGeometry(-IZ1, IH), woodMat, IX0 + 0.01, IH / 2, IZ1 / 2, 'receive');
-  lw.rotation.y = Math.PI / 2;
-  iadd(lw);
-  const rwall = mesh(new THREE.PlaneGeometry(-IZ1, IH), grey, IX1 - 0.01, IH / 2, IZ1 / 2, 'receive');
-  rwall.rotation.y = -Math.PI / 2;
-  iadd(rwall);
-  const backWall = mesh(new THREE.PlaneGeometry(IX1 - IX0, IH), std({ color: '#7f817f', roughness: 0.9 }), (IX0 + IX1) / 2, IH / 2, IZ1 + 0.01, 'receive');
-  iadd(backWall);
-  // inside face of the front wall (painted)
-  const fw = mesh(new THREE.PlaneGeometry(IX1 - IX0, IH), grey, (IX0 + IX1) / 2, IH / 2, -wallT - 0.01, 'none');
-  fw.rotation.y = Math.PI;
-  fw.visible = false; // the facade boxes already close the front
-  iadd(fw);
-  // baseboard + crown trim along the wood wall
-  iadd(mesh(box(0.03, 0.1, -IZ1), white, IX0 + 0.02, 0.05, IZ1 / 2));
-  iadd(mesh(box(0.04, 0.08, -IZ1), white, IX0 + 0.03, IH - 0.05, IZ1 / 2));
+  const grey = pbr('stucco', { color: '#a3a5a4', normalScale: 0.6 });
+  iw(0.04, IH, -IZ1 - WALL_T, M.wood, IX0, IH / 2, (IZ1 - WALL_T) / 2, 2.4);
+  iw(0.04, IH, -IZ1, grey, IX1, IH / 2, IZ1 / 2, 1.5);
+  iw(IX1 - IX0, IH, 0.04, pbr('stucco', { color: '#8f9190', normalScale: 0.6 }), (IX0 + IX1) / 2, IH / 2, IZ1, 1.5);
+  // inner face of the front wall above the window (so the interior is closed when looking back)
+  iw(IX1 - IX0, IH - BAND + 0.1, 0.04, grey, (IX0 + IX1) / 2, (IH + BAND) / 2 - 0.05, -WALL_T - 0.02, 2, 'none');
+  iadd(mesh(box(0.03, 0.1, -IZ1), white, IX0 + 0.03, 0.05, IZ1 / 2));
+  iadd(mesh(box(0.04, 0.08, -IZ1), white, IX0 + 0.04, IH - 0.05, IZ1 / 2));
 
-  // Mirrors (white frames) and wood vanities, with black barber chairs facing them
-  const mirrorMat = std({ color: '#eef3f4', roughness: 0.0, metalness: 1, envMapIntensity: 2.2 });
-  const vanityWood = std({ color: '#5a3a26', roughness: 0.6 });
-  const vanityTop = std({ color: '#5b5f63', roughness: 0.35 });
-  const leather = std({ color: '#0d0d0e', roughness: 0.42, metalness: 0.0 });
-  const chairBlack = std({ color: '#111113', roughness: 0.25, metalness: 0.6 });
+  const mirrorMat = std({ color: '#c4ccce', roughness: 0.02, metalness: 1, envMapIntensity: 1.0 });
+  const vanityWood = std({ color: '#5a3a26', roughness: 0.5 });
+  const vanityTop = std({ color: '#5b5f63', roughness: 0.25, metalness: 0.1 });
+  const leather = new THREE.MeshPhysicalMaterial({ color: '#0f0f10', roughness: 0.45, clearcoat: 0.35, clearcoatRoughness: 0.35, sheen: 0.3, sheenColor: new THREE.Color('#444') });
+  const chairBlack = std({ color: '#141416', roughness: 0.22, metalness: 0.7 });
   const stations = [-1.7, -3.55, -5.4, -7.25];
+  const mirrors: THREE.Mesh[] = [];
+  // The four mirrors are coplanar, so one planar reflection render feeds all of them.
+  const rs = quality === 'high' ? 1024 : 512;
+  const mirrorGeo = new THREE.PlaneGeometry(0.95, 1.75);
+  const reflector = new Reflector(mirrorGeo, { textureWidth: rs, textureHeight: Math.round(rs * 1.4), color: 0x8a9294, clipBias: 0.003 });
+  reflector.frustumCulled = false;
+  reflector.userData.noAO = true;
+  const reflectors: THREE.Mesh[] = [];
   stations.forEach((z, i) => {
-    const mw = 0.95, mh = 1.75, my = 1.52;
-    const fx = IX0 + 0.04;
-    iadd(mesh(box(0.04, mh, mw), mirrorMat, fx + 0.02, my, z, 'none'));
-    // frame
+    const mw = 0.95, mh = 1.75, my = 1.52, fx = IX0 + 0.04;
+    mirrors.push(iadd(mesh(box(0.03, mh, mw), mirrorMat, fx + 0.02, my, z, 'none')));
+    const r = i === 0 ? reflector : new THREE.Mesh(mirrorGeo, reflector.material);
+    r.position.set(fx + 0.04, my, z);
+    r.rotation.y = Math.PI / 2;
+    r.userData.noAO = true;
+    reflectors.push(iadd(r));
     const fr = 0.11;
-    iadd(mesh(box(0.06, fr, mw + fr * 2), white, fx + 0.04, my + mh / 2 + fr / 2, z));
-    iadd(mesh(box(0.06, fr, mw + fr * 2), white, fx + 0.04, my - mh / 2 - fr / 2, z));
-    iadd(mesh(box(0.06, mh, fr), white, fx + 0.04, my, z + mw / 2 + fr / 2));
-    iadd(mesh(box(0.06, mh, fr), white, fx + 0.04, my, z - mw / 2 - fr / 2));
-    // vanity between stations
+    iadd(mesh(rbox(0.06, fr, mw + fr * 2, 0.012), white, fx + 0.04, my + mh / 2 + fr / 2, z));
+    iadd(mesh(rbox(0.06, fr, mw + fr * 2, 0.012), white, fx + 0.04, my - mh / 2 - fr / 2, z));
+    iadd(mesh(rbox(0.06, mh, fr, 0.012), white, fx + 0.04, my, z + mw / 2 + fr / 2));
+    iadd(mesh(rbox(0.06, mh, fr, 0.012), white, fx + 0.04, my, z - mw / 2 - fr / 2));
     if (i < stations.length - 1) {
       const vz = (z + stations[i + 1]) / 2;
-      iadd(mesh(rbox(0.5, 0.86, 0.68, 0.015), vanityWood, IX0 + 0.27, 0.45, vz));
+      iadd(mesh(rbox(0.5, 0.86, 0.68, 0.02), vanityWood, IX0 + 0.27, 0.45, vz));
       iadd(mesh(rbox(0.55, 0.04, 0.74, 0.01), vanityTop, IX0 + 0.29, 0.9, vz));
-      // a few product bottles
       const cols = ['#e9e4da', '#1d3557', '#a33', '#222', '#c9a25e'];
       for (let b = 0; b < 4; b++) {
         const bh = 0.12 + (b % 3) * 0.05;
-        iadd(mesh(cyl(0.028, 0.03, bh, 12), std({ color: cols[(b + i) % cols.length], roughness: 0.3 }), IX0 + 0.22 + (b % 2) * 0.12, 0.92 + bh / 2, vz - 0.18 + b * 0.11));
+        iadd(mesh(cyl(0.028, 0.03, bh, 16), std({ color: cols[(b + i) % cols.length], roughness: 0.25 }), IX0 + 0.22 + (b % 2) * 0.12, 0.92 + bh / 2, vz - 0.18 + b * 0.11));
       }
     }
-    // chair
     const chair = barberChair(leather, chairBlack, chrome);
     chair.position.set(IX0 + 1.25, 0, z);
-    chair.rotation.y = -Math.PI / 2; // faces the mirror (-x)
+    chair.rotation.y = -Math.PI / 2;
     iadd(chair);
-    // pendant dome light above the station
-    const pend = new THREE.Group();
+    const pend = iadd(new THREE.Group());
     pend.position.set(IX0 + 1.3, IH, z);
     pend.add(mesh(cyl(0.006, 0.006, 0.15, 6), black, 0, -0.075, 0, 'none'));
-    const dome = mesh(new THREE.SphereGeometry(0.2, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#121212', roughness: 0.4, metalness: 0.4, side: THREE.DoubleSide }), 0, -0.3, 0, 'none');
+    const dome = mesh(new THREE.SphereGeometry(0.2, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#121212', roughness: 0.35, metalness: 0.5, side: THREE.DoubleSide }), 0, -0.3, 0, 'none');
     dome.scale.y = 0.55;
     pend.add(dome);
-    pend.add(mesh(new THREE.CircleGeometry(0.17, 24).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 2.8, 2.5), toneMapped: false, side: THREE.DoubleSide }), 0, -0.3, 0, 'none'));
-    iadd(pend);
+    pend.add(mesh(new THREE.CircleGeometry(0.17, 32).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 2.8, 2.5), toneMapped: false, side: THREE.DoubleSide }), 0, -0.3, 0, 'none'));
   });
 
-  // LED strips across the ceiling
   const ledMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 2.2, 2.3), toneMapped: false });
-  for (let z = -1.2; z > -10; z -= 1.45) iadd(mesh(box(3.6, 0.03, 0.07), ledMat, 1.45, IH - 0.02, z, 'none'));
+  for (let z = -1.2; z > -10; z -= 1.45) iadd(mesh(box(3.6, 0.03, 0.07), ledMat, 1.35, IH - 0.02, z, 'none'));
 
-  // Reception counter, wood accent column, waiting chairs, back door
-  iadd(mesh(box(0.55, 1.05, 1.6), white, 2.9, 0.525, -8.1));
-  iadd(mesh(box(0.6, 0.04, 1.7), std({ color: '#7a5a40', roughness: 0.6 }), 2.88, 1.07, -8.1));
-  const col = mesh(box(0.7, IH, 0.5), std({ map: rep(tx.wood, 0.35, 1), roughness: 0.78 }), 3.25, IH / 2, -9.3);
-  iadd(col);
+  iadd(mesh(rbox(0.55, 1.05, 1.6, 0.02), white, 2.85, 0.525, -8.1));
+  iadd(mesh(rbox(0.6, 0.04, 1.7, 0.01), std({ color: '#7a5a40', roughness: 0.5 }), 2.83, 1.07, -8.1));
+  iw(0.7, IH, 0.5, M.wood, 3.1, IH / 2, -9.3, 2.4, 'both');
   for (let k = 0; k < 4; k++) {
     const wc = waitingChair(leather, chairBlack);
-    wc.position.set(3.15, 0, -1.4 - k * 0.72);
+    wc.position.set(3.05, 0, -1.4 - k * 0.72);
     wc.rotation.y = -Math.PI / 2;
     iadd(wc);
   }
-  // back door
-  iadd(mesh(box(0.95, 2.1, 0.05), white, 2.35, 1.05, IZ1 + 0.03));
-  iadd(mesh(new THREE.SphereGeometry(0.03, 10, 8), chrome, 2.0, 1.0, IZ1 + 0.08));
-  // exit sign glow
-  iadd(mesh(box(0.32, 0.14, 0.04), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 0.35, 0.3), toneMapped: false }), 2.35, 2.45, IZ1 + 0.04, 'none'));
+  iadd(mesh(rbox(0.95, 2.1, 0.05, 0.01), white, 2.3, 1.05, IZ1 + 0.04));
+  iadd(mesh(new THREE.SphereGeometry(0.03, 12, 8), chrome, 1.95, 1.0, IZ1 + 0.09));
+  iadd(mesh(rbox(0.32, 0.14, 0.04, 0.01), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 0.35, 0.3), toneMapped: false }), 2.3, 2.45, IZ1 + 0.05, 'none'));
 
-  // Menu board on the back wall: black board, gold frame, real prices
-  const menuGroup = new THREE.Group();
+  // menu board on the back wall: real prices from src/data/services.ts
+  const menuGroup = iadd(new THREE.Group());
   menuGroup.position.set(-0.45, 1.62, IZ1 + 0.06);
   const MW = 2.7, MH = MW * (1400 / 2048);
-  const boardMat = std({ map: tx.menu, emissiveMap: tx.menu, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.32, roughness: 0.6 });
-  menuGroup.add(mesh(new THREE.PlaneGeometry(MW, MH), boardMat, 0, 0, 0.035, 'none'));
-  const goldFrame = std({ color: '#c9a25e', roughness: 0.28, metalness: 1 });
+  menuGroup.add(mesh(new THREE.PlaneGeometry(MW, MH), std({ map: ctex.menu, emissiveMap: ctex.menu, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.3, roughness: 0.55 }), 0, 0, 0.035, 'none'));
+  const goldFrame = std({ color: '#c9a25e', roughness: 0.25, metalness: 1 });
   const fr = 0.06;
-  menuGroup.add(mesh(box(MW + fr * 2, fr, 0.06), goldFrame, 0, MH / 2 + fr / 2, 0.02));
-  menuGroup.add(mesh(box(MW + fr * 2, fr, 0.06), goldFrame, 0, -MH / 2 - fr / 2, 0.02));
-  menuGroup.add(mesh(box(fr, MH, 0.06), goldFrame, MW / 2 + fr / 2, 0, 0.02));
-  menuGroup.add(mesh(box(fr, MH, 0.06), goldFrame, -MW / 2 - fr / 2, 0, 0.02));
-  // picture lights over the board
+  menuGroup.add(mesh(rbox(MW + fr * 2, fr, 0.06, 0.01), goldFrame, 0, MH / 2 + fr / 2, 0.02));
+  menuGroup.add(mesh(rbox(MW + fr * 2, fr, 0.06, 0.01), goldFrame, 0, -MH / 2 - fr / 2, 0.02));
+  menuGroup.add(mesh(rbox(fr, MH, 0.06, 0.01), goldFrame, MW / 2 + fr / 2, 0, 0.02));
+  menuGroup.add(mesh(rbox(fr, MH, 0.06, 0.01), goldFrame, -MW / 2 - fr / 2, 0, 0.02));
   for (const s of [-0.7, 0.7]) {
     menuGroup.add(mesh(cyl(0.012, 0.012, 0.22, 8), goldFrame, s, MH / 2 + 0.16, 0.12).rotateX(Math.PI / 2.6));
-    menuGroup.add(mesh(cyl(0.035, 0.035, 0.32, 16), goldFrame, s, MH / 2 + 0.22, 0.24).rotateZ(Math.PI / 2));
+    menuGroup.add(mesh(cyl(0.035, 0.035, 0.32, 20), goldFrame, s, MH / 2 + 0.22, 0.24).rotateZ(Math.PI / 2));
   }
-  iadd(menuGroup);
-  const menuLight = new THREE.SpotLight('#ffe2b0', 9, 4, 0.75, 0.6, 1.5);
+  const menuLight = iadd(new THREE.SpotLight('#ffe2b0', 9, 4, 0.75, 0.6, 1.5));
   menuLight.position.set(-0.45, 2.75, IZ1 + 1.1);
   menuLight.target.position.set(-0.45, 1.5, IZ1);
-  iadd(menuLight);
   iadd(menuLight.target);
 
-  /* ---------------- Person ---------------- */
-  const person = buildPerson();
-  add(person.root);
-
   return {
-    root, interior, doorPivot, person, poleTex, neonMat, neonLight, signFace: null,
-    windowGlass: glass, lampGlobe, menuGroup, ledMat,
-    dims: { WIN, DOOR, SIGN, IZ1, hingeX },
+    root, interior, doorPivot, poleTex, neonMat, neonLight, lampGlobe, menuGroup, ledMat, mirrors, reflectors, skyDome,
+    wind, flagTime, goose, lampPos: new THREE.Vector3(-11.9, 4.33, 6.55),
+    dims: { WIN, DOOR, SIGN, IZ1, hingeX, IX0, IX1, IH },
     quality,
   };
 }
@@ -527,160 +737,36 @@ export function buildWorld(scene: THREE.Scene, quality: 'high' | 'low') {
 function barberChair(leather: THREE.Material, frame: THREE.Material, chrome: THREE.Material) {
   // Built facing +z.
   const g = new THREE.Group();
-  g.add(mesh(cyl(0.3, 0.33, 0.05, 32), frame, 0, 0.025, 0));
-  g.add(mesh(cyl(0.07, 0.11, 0.36, 24), frame, 0, 0.23, 0));
-  g.add(mesh(cyl(0.12, 0.12, 0.05, 24), chrome, 0, 0.42, 0));
-  // seat
-  g.add(mesh(rbox(0.56, 0.14, 0.56, 0.06, 4), leather, 0, 0.53, 0.02));
-  g.add(mesh(rbox(0.6, 0.06, 0.6, 0.02), frame, 0, 0.45, 0.02));
-  // backrest, tilted back, with tufting buttons
+  g.add(mesh(new THREE.LatheGeometry([
+    new THREE.Vector2(0, 0), new THREE.Vector2(0.33, 0), new THREE.Vector2(0.33, 0.02), new THREE.Vector2(0.28, 0.05),
+    new THREE.Vector2(0.1, 0.07), new THREE.Vector2(0.075, 0.12), new THREE.Vector2(0.07, 0.4), new THREE.Vector2(0.12, 0.42), new THREE.Vector2(0, 0.43),
+  ], 40), frame, 0, 0, 0));
+  g.add(mesh(cyl(0.12, 0.12, 0.04, 32), chrome, 0, 0.43, 0));
+  g.add(mesh(rbox(0.56, 0.15, 0.56, 0.065, 5), leather, 0, 0.535, 0.02));
+  g.add(mesh(rbox(0.6, 0.06, 0.6, 0.025, 3), frame, 0, 0.45, 0.02));
   const back = new THREE.Group();
   back.position.set(0, 0.6, -0.26);
   back.rotation.x = -0.18;
-  back.add(mesh(rbox(0.54, 0.66, 0.12, 0.05, 4), leather, 0, 0.33, 0));
-  const btn = new THREE.SphereGeometry(0.012, 8, 6);
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) back.add(mesh(btn, frame, (c - 1) * 0.14, 0.16 + r * 0.17, 0.062, 'none'));
-  // headrest
-  back.add(mesh(cyl(0.012, 0.012, 0.14, 8), chrome, 0, 0.72, -0.02));
-  back.add(mesh(rbox(0.3, 0.12, 0.09, 0.04, 3), leather, 0, 0.82, 0.0));
+  back.add(mesh(rbox(0.54, 0.68, 0.13, 0.06, 5), leather, 0, 0.34, 0));
+  const btn = new THREE.SphereGeometry(0.012, 10, 8);
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) back.add(mesh(btn, frame, (c - 1) * 0.14, 0.16 + r * 0.17, 0.066, 'none'));
+  back.add(mesh(cyl(0.012, 0.012, 0.14, 10), chrome, 0, 0.74, -0.02));
+  back.add(mesh(rbox(0.3, 0.12, 0.09, 0.045, 4), leather, 0, 0.84, 0.0));
   g.add(back);
-  // armrests
   for (const s of [-1, 1]) {
-    g.add(mesh(rbox(0.08, 0.06, 0.5, 0.025), leather, s * 0.32, 0.78, 0.02));
-    g.add(mesh(rbox(0.04, 0.26, 0.04, 0.01), frame, s * 0.32, 0.64, 0.2));
-    g.add(mesh(rbox(0.04, 0.26, 0.04, 0.01), frame, s * 0.32, 0.64, -0.16));
+    g.add(mesh(rbox(0.085, 0.065, 0.5, 0.03, 3), leather, s * 0.32, 0.78, 0.02));
+    g.add(mesh(rbox(0.04, 0.26, 0.04, 0.012), frame, s * 0.32, 0.64, 0.2));
+    g.add(mesh(rbox(0.04, 0.26, 0.04, 0.012), frame, s * 0.32, 0.64, -0.16));
   }
-  // footrest
-  g.add(mesh(cyl(0.012, 0.012, 0.36, 8), chrome, 0, 0.36, 0.38).rotateX(0.6));
-  g.add(mesh(rbox(0.42, 0.03, 0.2, 0.01), frame, 0, 0.22, 0.5));
+  g.add(mesh(cyl(0.012, 0.012, 0.36, 10), chrome, 0, 0.36, 0.38).rotateX(0.6));
+  g.add(mesh(rbox(0.42, 0.03, 0.2, 0.012), frame, 0, 0.22, 0.5));
   return g;
 }
 
 function waitingChair(seat: THREE.Material, frame: THREE.Material) {
   const g = new THREE.Group();
-  g.add(mesh(rbox(0.46, 0.07, 0.44, 0.02), seat, 0, 0.46, 0));
+  g.add(mesh(rbox(0.46, 0.07, 0.44, 0.025), seat, 0, 0.46, 0));
   g.add(mesh(rbox(0.46, 0.4, 0.05, 0.02), seat, 0, 0.72, -0.21).rotateX(-0.1));
-  for (const [x, z] of [[-0.2, -0.18], [0.2, -0.18], [-0.2, 0.18], [0.2, 0.18]]) g.add(mesh(cyl(0.012, 0.012, 0.44, 8), frame, x, 0.22, z));
+  for (const [x, z] of [[-0.2, -0.18], [0.2, -0.18], [-0.2, 0.18], [0.2, 0.18]]) g.add(mesh(cyl(0.012, 0.012, 0.44, 10), frame, x, 0.22, z));
   return g;
-}
-
-/* ---------------- Person (stylised, fresh cut, walking out) ---------------- */
-
-export type Person = ReturnType<typeof buildPerson>;
-
-export function buildPerson() {
-  const skin = std({ color: '#8d5a3e', roughness: 0.55 });
-  const hair = std({ color: '#0e0b09', roughness: 0.85 });
-  const jacket = std({ color: '#1c1d20', roughness: 0.8 });
-  const jeans = std({ color: '#26334a', roughness: 0.85 });
-  const shoe = std({ color: '#ecebe7', roughness: 0.6 });
-  const sole = std({ color: '#2a2a2a', roughness: 0.8 });
-  const cap = (r: number, l: number, m: THREE.Material) => {
-    const g = new THREE.CapsuleGeometry(r, l, 6, 14);
-    const me = new THREE.Mesh(g, m);
-    me.castShadow = true;
-    return me;
-  };
-
-  const root = new THREE.Group();
-  const hips = new THREE.Group();
-  hips.position.y = 0.95;
-  root.add(hips);
-  const pelvis = mesh(rbox(0.34, 0.2, 0.21, 0.07, 3), jeans, 0, 0, 0, 'cast');
-  hips.add(pelvis);
-
-  const leg = (side: number) => {
-    const upper = new THREE.Group();
-    upper.position.set(side * 0.095, -0.04, 0);
-    const u = cap(0.072, 0.32, jeans);
-    u.position.y = -0.21;
-    upper.add(u);
-    const knee = new THREE.Group();
-    knee.position.y = -0.43;
-    upper.add(knee);
-    const l = cap(0.058, 0.33, jeans);
-    l.position.y = -0.2;
-    knee.add(l);
-    const foot = new THREE.Group();
-    foot.position.y = -0.43;
-    knee.add(foot);
-    const s = mesh(rbox(0.11, 0.08, 0.27, 0.035, 3), shoe, 0, -0.02, 0.05, 'cast');
-    foot.add(s);
-    foot.add(mesh(rbox(0.115, 0.025, 0.28, 0.01, 2), sole, 0, -0.06, 0.05, 'cast'));
-    hips.add(upper);
-    return { upper, knee, foot };
-  };
-  const L = leg(1), R = leg(-1);
-
-  const torso = new THREE.Group();
-  torso.position.y = 0.06;
-  hips.add(torso);
-  const chest = mesh(rbox(0.42, 0.56, 0.25, 0.1, 4), jacket, 0, 0.27, 0, 'cast');
-  torso.add(chest);
-  torso.add(mesh(rbox(0.18, 0.06, 0.16, 0.03), jacket, 0, 0.56, 0, 'cast'));
-  const neck = mesh(cyl(0.05, 0.055, 0.1, 14), skin, 0, 0.6, 0, 'cast');
-  torso.add(neck);
-  const head = new THREE.Group();
-  head.position.y = 0.74;
-  torso.add(head);
-  const skull = mesh(new THREE.SphereGeometry(0.105, 24, 18), skin, 0, 0, 0, 'cast');
-  skull.scale.set(0.92, 1.12, 1.0);
-  head.add(skull);
-  // fresh cut: short top, faded sides
-  const top = mesh(new THREE.SphereGeometry(0.11, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.42), hair, 0, 0.012, -0.005, 'cast');
-  top.scale.set(0.95, 1.12, 1.03);
-  head.add(top);
-  const fade = mesh(new THREE.SphereGeometry(0.107, 24, 12, 0, Math.PI * 2, Math.PI * 0.3, Math.PI * 0.28), std({ color: '#2b211b', roughness: 0.9 }), 0, 0, -0.008, 'none');
-  fade.scale.set(0.93, 1.12, 1.01);
-  head.add(fade);
-  for (const s of [-1, 1]) {
-    const ear = mesh(new THREE.SphereGeometry(0.022, 10, 8), skin, s * 0.097, -0.01, 0, 'none');
-    ear.scale.set(0.5, 1, 0.8);
-    head.add(ear);
-  }
-
-  const arm = (side: number) => {
-    const sh = new THREE.Group();
-    sh.position.set(side * 0.235, 0.5, 0);
-    const u = cap(0.058, 0.22, jacket);
-    u.position.y = -0.15;
-    sh.add(u);
-    const el = new THREE.Group();
-    el.position.y = -0.3;
-    sh.add(el);
-    const f = cap(0.048, 0.2, jacket);
-    f.position.y = -0.13;
-    el.add(f);
-    const hand = mesh(new THREE.SphereGeometry(0.047, 14, 10), skin, 0, -0.29, 0.01, 'cast');
-    hand.scale.set(0.8, 1.15, 0.9);
-    el.add(hand);
-    torso.add(sh);
-    return { sh, el };
-  };
-  const AL = arm(1), AR = arm(-1);
-
-  /** phase: walk cycle angle; walk: 0..1 amount; reach: 0..1 right arm reaching forward (door). */
-  function pose(phase: number, walk: number, reach: number) {
-    const s = Math.sin(phase), c = Math.cos(phase);
-    L.upper.rotation.x = -s * 0.5 * walk;
-    R.upper.rotation.x = s * 0.5 * walk;
-    L.knee.rotation.x = Math.max(0, -c) * 0.85 * walk + 0.05;
-    R.knee.rotation.x = Math.max(0, c) * 0.85 * walk + 0.05;
-    L.foot.rotation.x = -L.upper.rotation.x * 0.3 - L.knee.rotation.x * 0.4;
-    R.foot.rotation.x = -R.upper.rotation.x * 0.3 - R.knee.rotation.x * 0.4;
-    hips.position.y = 0.95 - 0.018 * walk + Math.abs(c) * 0.03 * walk;
-    hips.rotation.y = s * 0.08 * walk;
-    torso.rotation.y = -s * 0.14 * walk;
-    torso.rotation.x = 0.04 * walk;
-    AL.sh.rotation.x = s * 0.42 * walk;
-    AL.sh.rotation.z = 0.08;
-    AL.el.rotation.x = -0.25 - Math.max(0, -s) * 0.3 * walk;
-    const swingR = -s * 0.42 * walk;
-    AR.sh.rotation.x = swingR * (1 - reach) - 1.25 * reach;
-    AR.sh.rotation.z = -0.08 + 0.1 * reach;
-    AR.el.rotation.x = (-0.25 - Math.max(0, s) * 0.3 * walk) * (1 - reach) - 0.12 * reach;
-    head.rotation.y = 0;
-  }
-  pose(0, 0, 0);
-  return { root, pose, head, torso };
 }

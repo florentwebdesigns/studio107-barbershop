@@ -22,7 +22,7 @@ const bookExt = business.booking ? { target: '_blank', rel: 'noopener' } : {};
       <i class="hud__c hud__c--tl"></i><i class="hud__c hud__c--tr"></i><i class="hud__c hud__c--bl"></i><i class="hud__c hud__c--br"></i>
       <span class="hud__rec"><b></b>REC <span data-hud-time>00:00:00</span></span>
       <span class="hud__alt" data-hud-alt>ALT 05.4 M</span>
-      <span class="hud__chap" data-hud-chap>01 · Outside</span>
+      <span class="hud__chap" data-hud-chap>01 · Mountain Ave</span>
       <span class="hud__loc">265 Mountain Ave · Springfield NJ</span>
       <span class="hud__bar"><span data-hud-bar></span></span>
       <span class="hud__cross"></span>
@@ -76,7 +76,7 @@ const bookExt = business.booking ? { target: '_blank', rel: 'noopener' } : {};
 
     <div class="drone__loader" aria-hidden="true">
       <span class="drone__loader-mark">Studio 107</span>
-      <span class="drone__loader-bar"><i></i></span>
+      <span class="drone__loader-bar" data-drone-progress><i></i></span>
     </div>
   </div>
 </section>
@@ -175,8 +175,8 @@ const bookExt = business.booking ? { target: '_blank', rel: 'noopener' } : {};
   .drone:not(.is-loading) .drone__loader { opacity: 0; visibility: hidden; }
   .drone__loader-mark { font-family: var(--serif); font-style: italic; font-size: 2.4rem; background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .drone__loader-bar { width: 140px; height: 1px; background: rgba(243, 238, 230, 0.15); overflow: hidden; }
-  .drone__loader-bar i { display: block; height: 100%; width: 40%; background: var(--gold-grad); animation: load 1.2s var(--ease-inout) infinite; }
-  @keyframes load { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+  .drone__loader-bar { --p: 0.06; }
+  .drone__loader-bar i { display: block; height: 100%; width: 100%; background: var(--gold-grad); transform-origin: left; transform: scaleX(var(--p)); transition: transform 0.5s var(--ease-out); }
 
   /* ---------- No WebGL: photo hero ---------- */
   .drone.no-gl { height: 100vh; height: 100svh; }

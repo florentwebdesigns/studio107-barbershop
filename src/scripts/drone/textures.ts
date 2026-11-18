@@ -41,136 +41,14 @@ function noise(ctx: Ctx, w: number, h: number, amt: number, n = 9000) {
   }
 }
 
-/* ---------- Exterior ---------- */
+/* ---------- Signage ---------- */
 
-export function brick() {
-  const W = 1024, H = 1024;
-  const [c, x] = canvas(W, H);
-  const [bc, b] = canvas(W, H); // bump
-  x.fillStyle = '#8c857c';
-  x.fillRect(0, 0, W, H);
-  b.fillStyle = '#000';
-  b.fillRect(0, 0, W, H);
-  const bw = 128, bh = 42, m = 7;
-  const tones = ['#8a3f2c', '#9b4a33', '#7a3526', '#a5573b', '#6f3124', '#94503a', '#b0654a', '#5e2b20'];
-  for (let row = 0; row * (bh + m) < H + bh; row++) {
-    const off = row % 2 ? bw / 2 : 0;
-    for (let col = -1; col * (bw + m) < W + bw; col++) {
-      const px = col * (bw + m) + off, py = row * (bh + m);
-      const g = x.createLinearGradient(px, py, px + bw, py + bh);
-      const base = pick(tones);
-      g.addColorStop(0, base);
-      g.addColorStop(1, pick(tones));
-      x.fillStyle = g;
-      x.fillRect(px, py, bw, bh);
-      // soot / wear
-      x.fillStyle = `rgba(20,10,5,${rr(0, 0.25)})`;
-      x.fillRect(px, py + bh * rr(0.4, 0.8), bw, bh * 0.4);
-      b.fillStyle = `rgb(${rr(170, 230)},${rr(170, 230)},${rr(170, 230)})`;
-      b.fillRect(px + 1, py + 1, bw - 2, bh - 2);
-    }
-  }
-  noise(x, W, H, 0.18, 26000);
-  noise(b, W, H, 0.3, 20000);
-  return { map: tex(c, [1, 1]), bump: tex(bc, [1, 1], false) };
-}
 
-export function shingles() {
-  const W = 1024, H = 1024;
-  const [c, x] = canvas(W, H);
-  x.fillStyle = '#2b2d30';
-  x.fillRect(0, 0, W, H);
-  const rh = 64;
-  for (let row = 0; row * rh < H; row++) {
-    const off = (row % 2) * 48;
-    for (let px = -off; px < W; px += rr(80, 120)) {
-      const w = rr(78, 118);
-      const v = rr(38, 70);
-      x.fillStyle = `rgb(${v},${v + 2},${v + 5})`;
-      x.fillRect(px, row * rh, w - 3, rh - 6);
-      x.fillStyle = 'rgba(0,0,0,0.55)';
-      x.fillRect(px, row * rh + rh - 8, w, 6);
-    }
-  }
-  noise(x, W, H, 0.35, 60000);
-  return tex(c, [1, 1]);
-}
 
-export function concrete(light = true) {
-  const W = 512, H = 512;
-  const [c, x] = canvas(W, H);
-  x.fillStyle = light ? '#8d8a84' : '#2a2a2b';
-  x.fillRect(0, 0, W, H);
-  for (let i = 0; i < 40; i++) {
-    const g = x.createRadialGradient(rr(0, W), rr(0, H), 0, rr(0, W), rr(0, H), rr(40, 160));
-    g.addColorStop(0, `rgba(0,0,0,${rr(0, 0.08)})`);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    x.fillStyle = g;
-    x.fillRect(0, 0, W, H);
-  }
-  noise(x, W, H, light ? 0.18 : 0.25, 30000);
-  return tex(c, [1, 1]);
-}
 
-export function gravel() {
-  const W = 512, H = 512;
-  const [c, x] = canvas(W, H);
-  x.fillStyle = '#6d6a66';
-  x.fillRect(0, 0, W, H);
-  for (let i = 0; i < 9000; i++) {
-    const v = rr(70, 190);
-    x.fillStyle = `rgb(${v},${v - rr(0, 10)},${v - rr(0, 18)})`;
-    x.beginPath();
-    x.ellipse(rr(0, W), rr(0, H), rr(1.5, 4), rr(1.2, 3.2), rr(0, 3), 0, 7);
-    x.fill();
-  }
-  return tex(c, [1, 1]);
-}
 
-export function pavers() {
-  // Herringbone brick sidewalk, like the real Mountain Ave sidewalk.
-  const W = 1024, H = 1024;
-  const [c, x] = canvas(W, H);
-  x.fillStyle = '#3c2a24';
-  x.fillRect(0, 0, W, H);
-  const u = 32; // brick = 2u x 1u
-  const tones = ['#7c3b2e', '#6b3328', '#8a4636', '#5d2c24', '#924c3a', '#70382c'];
-  for (let i = -40; i < 40; i++) {
-    for (let j = -40; j < 40; j++) {
-      const ox = (i + j) * 2 * u, oy = (j - i) * 2 * u;
-      // two bricks per cell, one horizontal and one vertical
-      const rects: [number, number, number, number][] = [
-        [ox, oy, 4 * u, 2 * u],
-        [ox + 2 * u, oy + 2 * u, 2 * u, 4 * u],
-      ];
-      for (const [px, py, w, h] of rects) {
-        if (px > W + 200 || py > H + 200 || px + w < -200 || py + h < -200) continue;
-        x.fillStyle = pick(tones);
-        x.fillRect(px + 2, py + 2, w - 4, h - 4);
-      }
-    }
-  }
-  noise(x, W, H, 0.22, 40000);
-  return tex(c, [1, 1]);
-}
 
-export function asphalt() {
-  const W = 512, H = 512;
-  const [c, x] = canvas(W, H);
-  x.fillStyle = '#1d1e20';
-  x.fillRect(0, 0, W, H);
-  noise(x, W, H, 0.35, 50000);
-  return tex(c, [1, 1]);
-}
 
-export function stucco() {
-  const W = 512, H = 256;
-  const [c, x] = canvas(W, H);
-  x.fillStyle = '#c9c6bf';
-  x.fillRect(0, 0, W, H);
-  noise(x, W, H, 0.12, 20000);
-  return tex(c, [1, 1]);
-}
 
 /** The real sign: black panel, gold "Studio 107", white BARBERSHOP, gold phone, "265" plate. */
 export function sign() {
@@ -289,12 +167,12 @@ export function sky() {
   // Gradient for the dusk sky dome (vertical), sampled by uv.y
   const [c, x] = canvas(4, 512);
   const g = x.createLinearGradient(0, 0, 0, 512);
-  g.addColorStop(0, '#04060b');
-  g.addColorStop(0.22, '#0a1328');
-  g.addColorStop(0.38, '#1c2744');
-  g.addColorStop(0.45, '#4a3a4a');
-  g.addColorStop(0.49, '#b06a42');
-  g.addColorStop(0.505, '#e09a5c');
+  g.addColorStop(0, '#0b1633');
+  g.addColorStop(0.2, '#15274f');
+  g.addColorStop(0.36, '#2b3f6c');
+  g.addColorStop(0.44, '#5c5170');
+  g.addColorStop(0.475, '#b8775a');
+  g.addColorStop(0.497, '#eaa66a');
   g.addColorStop(0.53, '#2a201d');
   g.addColorStop(1, '#0a0909');
   x.fillStyle = g;
@@ -304,76 +182,7 @@ export function sky() {
 
 /* ---------- Interior ---------- */
 
-/** Reclaimed-wood plank wall: mixed dark brown, tan, grey and whitewashed boards. */
-export function woodWall() {
-  const W = 2048, H = 1024;
-  const [c, x] = canvas(W, H);
-  x.fillStyle = '#2a1f18';
-  x.fillRect(0, 0, W, H);
-  const tones = ['#3b2a1f', '#4e3626', '#6b4b33', '#7d5d42', '#9a7b5c', '#b39a7a', '#d9d1c3', '#cfc6b6', '#5a4a3e', '#2f241c', '#8a6a4c'];
-  const bh = 46;
-  for (let row = 0; row * bh < H; row++) {
-    let px = -rr(0, 300);
-    while (px < W) {
-      const w = rr(180, 620);
-      const tone = pick(tones);
-      x.fillStyle = tone;
-      x.fillRect(px, row * bh + 2, w - 3, bh - 4);
-      // grain
-      x.globalAlpha = 0.25;
-      for (let k = 0; k < 7; k++) {
-        x.strokeStyle = rand() > 0.5 ? '#1a120c' : '#e8dccb';
-        x.lineWidth = rr(0.6, 1.6);
-        x.beginPath();
-        const yy = row * bh + rr(6, bh - 6);
-        x.moveTo(px, yy);
-        x.bezierCurveTo(px + w * 0.3, yy + rr(-4, 4), px + w * 0.7, yy + rr(-4, 4), px + w, yy + rr(-3, 3));
-        x.stroke();
-      }
-      x.globalAlpha = 1;
-      // nail holes
-      x.fillStyle = 'rgba(0,0,0,0.6)';
-      x.fillRect(px + 10, row * bh + bh / 2, 3, 3);
-      x.fillRect(px + w - 16, row * bh + bh / 2, 3, 3);
-      px += w;
-    }
-  }
-  noise(x, W, H, 0.15, 30000);
-  return tex(c, [1, 1]);
-}
 
-/** Grey-brown wood-look vinyl plank floor. */
-export function floor() {
-  const W = 1024, H = 1024;
-  const [c, x] = canvas(W, H);
-  const pw = 128;
-  for (let col = 0; col * pw < W; col++) {
-    let py = -rr(0, 600);
-    while (py < H) {
-      const h = rr(500, 900);
-      const v = rr(88, 128);
-      x.fillStyle = `rgb(${v + 18},${v + 8},${v - 4})`;
-      x.fillRect(col * pw, py, pw, h);
-      x.globalAlpha = 0.18;
-      for (let k = 0; k < 14; k++) {
-        x.strokeStyle = rand() > 0.5 ? '#3a2e24' : '#d8cbb8';
-        x.lineWidth = rr(0.5, 1.4);
-        const xx = col * pw + rr(4, pw - 4);
-        x.beginPath();
-        x.moveTo(xx, py);
-        x.bezierCurveTo(xx + rr(-6, 6), py + h * 0.3, xx + rr(-6, 6), py + h * 0.7, xx + rr(-4, 4), py + h);
-        x.stroke();
-      }
-      x.globalAlpha = 1;
-      x.fillStyle = 'rgba(30,22,16,0.7)';
-      x.fillRect(col * pw, py, pw, 2);
-      x.fillRect(col * pw, py, 2, h);
-      py += h;
-    }
-  }
-  noise(x, W, H, 0.08, 20000);
-  return tex(c, [1, 1]);
-}
 
 export function ceiling() {
   const W = 512, H = 512;
@@ -439,7 +248,7 @@ export function menuBoard() {
       (x as any).letterSpacing = '0px';
       x.fillStyle = 'rgba(201,162,94,0.5)';
       x.fillRect(colX[ci], y + 18, colW, 2);
-      y += 86;
+      y += col.length === 1 ? 86 : 72;
       for (const s of grp.items) {
         x.textAlign = 'left';
         x.fillStyle = '#f1ece4';
@@ -454,18 +263,169 @@ export function menuBoard() {
         x.textAlign = 'right';
         x.fillStyle = goldGrad(colX[ci] + colW - pw, colX[ci] + colW);
         x.fillText(price, colX[ci] + colW, y);
-        y += col.length === 1 ? 112 : 84;
+        y += col.length === 1 ? 112 : 74;
       }
-      y += 44;
+      y += col.length === 1 ? 44 : 34;
     }
   });
   x.textAlign = 'center';
   x.fillStyle = 'rgba(243,238,230,0.6)';
   x.font = '600 28px "Manrope Variable", Manrope, sans-serif';
   (x as any).letterSpacing = '6px';
-  x.fillText('BOOK ONLINE ON VAGARO   ·   (973) 376-9661', W / 2, H - 110);
+  x.fillText('BOOK ONLINE ON VAGARO   ·   (973) 376-9661', W / 2, H - 70);
   (x as any).letterSpacing = '0px';
   const t = tex(c, undefined, true, 16);
+  return t;
+}
+
+/** Neighbour unit (dog groomer): black dog silhouettes in white circles, no business name. */
+export function dogDecals() {
+  const W = 1024, H = 512;
+  const [c, x] = canvas(W, H);
+  x.clearRect(0, 0, W, H);
+  const paw = (cx: number, cy: number, s: number, rot: number) => {
+    x.save();
+    x.translate(cx, cy);
+    x.rotate(rot);
+    x.scale(s, s);
+    x.fillStyle = '#121212';
+    x.beginPath();
+    x.ellipse(0, 22, 34, 28, 0, 0, 7); // main pad
+    x.fill();
+    for (const [tx, ty, r] of [[-38, -14, 13], [-14, -36, 14], [14, -36, 14], [38, -14, 13]] as const) {
+      x.beginPath();
+      x.ellipse(tx, ty, r, r * 1.25, tx * 0.01, 0, 7);
+      x.fill();
+    }
+    x.restore();
+  };
+  const spots: [number, number, number][] = [[170, 150, -0.2], [420, 150, 0.15], [170, 380, 0.1], [420, 380, -0.15]];
+  for (const [cx, cy, r] of spots) {
+    x.fillStyle = 'rgba(245,245,240,0.92)';
+    x.beginPath();
+    x.ellipse(cx, cy, 105, 108, 0, 0, 7);
+    x.fill();
+    paw(cx, cy + 4, 1.1, r);
+  }
+  // a small white info panel on the right, as in the photo (no legible text)
+  x.fillStyle = 'rgba(240,240,236,0.85)';
+  x.fillRect(640, 60, 300, 400);
+  x.fillStyle = 'rgba(30,30,30,0.6)';
+  for (let i = 0; i < 9; i++) x.fillRect(670, 100 + i * 38, 140 + ((i * 53) % 90), 12);
+  return tex(c);
+}
+
+/** Neighbour unit (day spa): brown sign panel with a cream border and ornament, no name. */
+export function spaSign() {
+  const W = 1024, H = 192;
+  const [c, x] = canvas(W, H);
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#4a2d20');
+  g.addColorStop(1, '#3a2218');
+  x.fillStyle = g;
+  x.fillRect(0, 0, W, H);
+  x.strokeStyle = 'rgba(236,222,196,0.8)';
+  x.lineWidth = 5;
+  x.strokeRect(18, 18, W - 36, H - 36);
+  x.beginPath();
+  x.arc(W / 2, H / 2, 40, 0, 7);
+  x.stroke();
+  x.lineWidth = 3;
+  x.beginPath();
+  x.moveTo(140, H / 2); x.lineTo(W / 2 - 60, H / 2);
+  x.moveTo(W / 2 + 60, H / 2); x.lineTo(W - 140, H / 2);
+  x.stroke();
+  noise(x, W, H, 0.06, 6000);
+  return tex(c);
+}
+
+/** Generic softly lit shop interior seen through a neighbour's glass at dusk. */
+export function shopInterior(tint: string, salon = false) {
+  const W = 512, H = 256;
+  const [c, x] = canvas(W, H);
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, tint);
+  g.addColorStop(1, '#0b0a0a');
+  x.fillStyle = g;
+  x.fillRect(0, 0, W, H);
+  const r = x.createRadialGradient(W * 0.5, 0, 10, W * 0.5, 0, W * 0.7);
+  r.addColorStop(0, 'rgba(255,240,220,0.35)');
+  r.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = r;
+  x.fillRect(0, 0, W, H);
+  if (salon) {
+    // styling stations: lit mirrors with chair silhouettes
+    for (let i = 0; i < 4; i++) {
+      const mx = 40 + i * 120;
+      x.fillStyle = 'rgba(255,226,190,0.26)';
+      x.fillRect(mx, 60, 70, 95);
+      x.fillStyle = 'rgba(30,20,15,0.9)';
+      x.beginPath();
+      x.ellipse(mx + 35, 175, 26, 30, 0, 0, 7);
+      x.fill();
+      x.fillRect(mx + 31, 200, 8, 30);
+    }
+  } else {
+    // a front counter and wall shelves
+    x.fillStyle = 'rgba(20,22,26,0.85)';
+    x.fillRect(260, 150, 200, 90);
+    for (let i = 0; i < 3; i++) {
+      x.fillStyle = 'rgba(200,210,220,0.18)';
+      x.fillRect(40, 70 + i * 45, 170, 6);
+      for (let k = 0; k < 8; k++) {
+        x.fillStyle = `rgba(${120 + rand() * 120},${100 + rand() * 100},${90 + rand() * 120},0.6)`;
+        x.fillRect(46 + k * 20, 50 + i * 45, 14, 20);
+      }
+    }
+  }
+  noise(x, W, H, 0.05, 4000);
+  return tex(c);
+}
+
+/** The shop's own "BARBER" feather flag (red / white / blue), as in the Street View photo. */
+export function featherFlag() {
+  const W = 256, H = 1024;
+  const [c, x] = canvas(W, H);
+  x.clearRect(0, 0, W, H);
+  // feather silhouette
+  x.beginPath();
+  x.moveTo(0, 40);
+  x.bezierCurveTo(60, 0, 230, 10, 250, 140);
+  x.lineTo(232, 1000);
+  x.lineTo(0, 1000);
+  x.closePath();
+  x.save();
+  x.clip();
+  x.fillStyle = '#f4f2ee';
+  x.fillRect(0, 0, W, H);
+  // diagonal pole stripes down the leading edge
+  x.save();
+  x.beginPath();
+  x.rect(0, 0, 52, H);
+  x.clip();
+  for (let y = -60; y < H; y += 60) {
+    x.fillStyle = '#c8202d';
+    x.beginPath(); x.moveTo(0, y); x.lineTo(52, y + 26); x.lineTo(52, y + 46); x.lineTo(0, y + 20); x.fill();
+    x.fillStyle = '#1f3fae';
+    x.beginPath(); x.moveTo(0, y + 30); x.lineTo(52, y + 56); x.lineTo(52, y + 70); x.lineTo(0, y + 44); x.fill();
+  }
+  x.restore();
+  x.fillStyle = '#1f3fae';
+  x.fillRect(220, 0, 40, H);
+  x.fillStyle = '#c8202d';
+  x.fillRect(206, 0, 12, H);
+  // BARBER, reading bottom-to-top like the real flag
+  x.save();
+  x.translate(140, 560);
+  x.rotate(-Math.PI / 2);
+  x.fillStyle = '#121212';
+  x.font = '900 118px "Manrope Variable", Manrope, sans-serif';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.fillText('BARBER', 0, 0);
+  x.restore();
+  x.restore();
+  const t = tex(c);
   return t;
 }
 

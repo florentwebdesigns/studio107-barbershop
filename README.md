@@ -61,8 +61,22 @@ Just replace the files in `public/media/` with the same names.
 The homepage hero is a scroll-driven 3D scene (`src/components/DroneHero.astro`, code in `src/scripts/drone/`):
 a dusk "drone shot" of the storefront, a client walking out and pulling the door shut, then the camera
 flies through the door, along the chairs, and stops on a menu board drawn from `src/data/services.ts`.
-Everything is procedural Three.js (no 3D model files). Phones without WebGL, data-saver mode and
-reduced-motion users get the real storefront photo instead.
+The block around the shop is modeled on the Street View imagery of 265 Mountain Ave: the brick strip of
+three shops under a shingled hip roof (neighbours shown without names), gravel forecourt and walkways,
+herringbone brick sidewalk, hydrant, lamp post, utility wires, hedge, the white house on the right and the
+pines behind. Phones without WebGL, data-saver mode and reduced-motion users get the real storefront photo instead.
+
+Assets in `public/drone/` (about 5.2 MB, loaded only by the homepage hero):
+
+| File | What | Source / license |
+|---|---|---|
+| `tex/*_c/_n/_orm.webp` | PBR texture sets (brick, shingles, pavers, gravel, wood wall, ...) | baked by `tools/bake_textures.py` (ours) |
+| `trees.glb` | pines, bare trees, maple, shrubs | generated with [ez-tree](https://github.com/dgreenheck/ez-tree) (MIT) via `tools/bake-trees.html` + `tools/bake-trees.cjs` |
+| `client.glb` | the client walking out | Ready Player Me sample avatar from the three.js examples |
+| `anims.glb` | walk / idle clips | Mixamo clips from the three.js `Soldier.glb` example, retargeted in `client.ts` |
+
+Re-bake textures: `python3 tools/bake_textures.py`. Re-bake trees: `node tools/bake-trees.cjs out.glb`, then
+compress with `gltf-transform optimize out.glb public/drone/trees.glb --compress meshopt --texture-compress webp --texture-size 512`.
 
 - Camera path: `KEYS` in `src/scripts/drone/drone-hero.ts` (scroll progress 0 to 1).
 - Overlay text per scroll range: the `data-from` / `data-to` blocks in `DroneHero.astro`.
