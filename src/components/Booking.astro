@@ -1,0 +1,255 @@
+---
+/**
+ * Book your chair. Booking happens on the shop's real Vagaro page; the call button is the backup.
+ * A "Text the shop" card appears only when business.sms is confirmed.
+ */
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+import { bookAttrs, telLink, smsLink } from '../lib/links';
+import { hoursSummary } from '../lib/hours';
+
+const summary = hoursSummary();
+const sms = business.sms;
+const smsBody = `Hi ${business.shortName}, I'd like to book an appointment.`;
+---
+
+<section class="book blend" id="book" aria-labelledby="book-title">
+  <!-- Vertical slats, after the reclaimed-wood wall, with drifting light and a slow chrome sweep -->
+  <div class="book__bg" aria-hidden="true">
+    <div class="book__slats"></div>
+    <div class="book__light book__light--a"></div>
+    <div class="book__light book__light--b"></div>
+    <div class="book__sweep"></div>
+  </div>
+
+  <div class="wrap book__inner">
+    <header class="book__head">
+      <p class="eyebrow eyebrow--plain" data-reveal>Book your chair</p>
+      <h2 id="book-title" class="book__title display" data-split>
+        <span class="split-line"><span>Your next cut</span></span>
+        <span class="split-line" style="--i:1"><span><em class="metal-text">starts here.</em></span></span>
+      </h2>
+      <p class="book__lede" data-reveal style="--d:200">
+        Appointments are recommended: the shop gets busy. Choose your service and time on {business.bookingProvider} in
+        under a minute, or give the shop a call.
+      </p>
+    </header>
+
+    <div class="book__ctas" data-reveal style="--d:320">
+      <a class="btn btn--metal book__primary" {...bookAttrs()}>
+        <Icon name="calendar" />
+        Book online
+      </a>
+      <a class="btn btn--ghost" href={telLink()}>
+        <Icon name="phone" />
+        <span class="tnum">Call {business.phone.display}</span>
+      </a>
+    </div>
+
+    <p class="book__note" data-reveal style="--d:400">
+      <span class="book__note-k">Hot towel shave?</span> Mention it when you book.
+    </p>
+
+    <ul class="book__hours tnum" data-reveal style="--d:480" aria-label="Opening hours">
+      {
+        summary.map((s) => (
+          <li>
+            <span>{s.days}</span>
+            <span>{s.range}</span>
+          </li>
+        ))
+      }
+    </ul>
+
+    {
+      sms && (
+        <a class="book__sms" href={smsLink(smsBody)} data-reveal style="--d:520">
+          <Icon name="message" />
+          <span>
+            <strong>Text the shop</strong>
+            <span class="tnum">{sms.display}</span>
+          </span>
+          <Icon name="arrow" />
+        </a>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .book {
+    overflow: hidden;
+    padding-block: clamp(110px, 13vw, 200px);
+    --blend-bg: rgba(9, 9, 10, 0.82);
+  }
+  .book__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 var(--feather-top), #000 calc(100% - var(--feather-bottom)), transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 var(--feather-top), #000 calc(100% - var(--feather-bottom)), transparent 100%);
+  }
+  .book__slats {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.032) 0px,
+      rgba(255, 255, 255, 0.01) 3px,
+      rgba(0, 0, 0, 0.36) 11px,
+      rgba(255, 255, 255, 0.018) 18px
+    );
+    -webkit-mask-image: radial-gradient(70% 80% at 50% 40%, #000 20%, transparent 85%);
+    mask-image: radial-gradient(70% 80% at 50% 40%, #000 20%, transparent 85%);
+  }
+  .book__light {
+    position: absolute;
+    width: 70vmax;
+    height: 70vmax;
+    border-radius: 50%;
+    filter: blur(40px);
+    mix-blend-mode: screen;
+    will-change: transform;
+  }
+  .book__light--a {
+    left: -20vmax;
+    top: -30vmax;
+    background: radial-gradient(circle, rgba(214, 220, 228, 0.16), transparent 62%);
+    animation: bk-drift-a 26s var(--ease-io) infinite alternate;
+  }
+  .book__light--b {
+    right: -25vmax;
+    bottom: -40vmax;
+    background: radial-gradient(circle, rgba(168, 143, 116, 0.12), transparent 60%);
+    animation: bk-drift-b 32s var(--ease-io) infinite alternate;
+  }
+  .book__sweep {
+    position: absolute;
+    inset: -20% -50%;
+    background: linear-gradient(
+      100deg,
+      transparent 40%,
+      rgba(226, 230, 235, 0.05) 48%,
+      rgba(236, 240, 246, 0.1) 50%,
+      rgba(226, 230, 235, 0.05) 52%,
+      transparent 60%
+    );
+    animation: bk-sweep 14s var(--ease-io) infinite;
+  }
+  @keyframes bk-drift-a {
+    to {
+      transform: translate(18vmax, 14vmax);
+    }
+  }
+  @keyframes bk-drift-b {
+    to {
+      transform: translate(-16vmax, -10vmax);
+    }
+  }
+  @keyframes bk-sweep {
+    0% {
+      transform: translateX(-45%);
+    }
+    55%,
+    100% {
+      transform: translateX(45%);
+    }
+  }
+
+  .book__inner {
+    display: grid;
+    justify-items: center;
+    gap: 30px;
+    text-align: center;
+  }
+  .book__head {
+    display: grid;
+    justify-items: center;
+    gap: 30px;
+  }
+  .book__title {
+    font-size: clamp(3.3rem, 1.4rem + 7.2vw, 9.2rem);
+    line-height: 0.9;
+    letter-spacing: -0.022em;
+  }
+  .book__lede {
+    max-width: 34em;
+    font-size: var(--step-1);
+    color: var(--bone-2);
+  }
+  .book__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 6px;
+  }
+  .book__primary {
+    --btn-pad-x: 44px;
+    min-height: 62px;
+    font-size: 0.8rem;
+  }
+  .book__note {
+    font-size: 0.92rem;
+    color: var(--mist);
+  }
+  .book__note-k {
+    color: var(--bone);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.25rem;
+    margin-right: 4px;
+  }
+  .book__hours {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 34px;
+    margin-top: 6px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mist);
+  }
+  .book__hours li {
+    display: inline-flex;
+    gap: 12px;
+  }
+  .book__hours li span:first-child {
+    color: var(--silver);
+  }
+  .book__sms {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 22px;
+    border: 1px solid rgba(201, 205, 210, 0.28);
+    text-align: left;
+  }
+  .book__sms :global(svg) {
+    width: 18px;
+    height: 18px;
+  }
+  .book__sms strong {
+    display: block;
+    font-size: 0.74rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 560px) {
+    .book__ctas {
+      display: grid;
+      width: 100%;
+    }
+    .book__hours {
+      display: grid;
+      gap: 8px;
+    }
+  }
+</style>

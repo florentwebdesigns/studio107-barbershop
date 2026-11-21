@@ -1,40 +1,567 @@
 ---
-import Icon from './Icon.astro';
-import { business } from '../data/business';
+/**
+ * Opening intro. A full-screen, scroll-driven 3D presentation before the site itself:
+ * the Studio 107 clipper turns in and powers on, flips over and cuts a fade into a patch of hair, moves in close
+ * on the blades, comes apart into an exploded view and back together, then makes one last pass across the
+ * screen that wipes in the Studio 107 script logo. Keep scrolling and the stage slides away into the hero.
+ * The model is built and rendered live in the browser (three.js, see scripts/craft-3d.ts). No video.
+ */
+import Logo from './Logo.astro';
+
+const chapters = [
+  { title: 'Precision in', em: 'every pass.', body: 'Distinctive, detailed cuts start with clean work.' },
+  { title: 'Fades, tapers', em: '& line-ups.', body: 'Blended until it reads right from every angle.' },
+  { title: 'Detail you', em: 'can feel.', body: 'Edges, necklines and beards, finished up close.' },
+  { title: 'Every part', em: 'has a job.', body: 'Then a hot towel to close it out.' },
+];
 ---
-<!-- Quick-glance strip directly under the film: the three things a phone visitor wants. -->
-<section class="intro" id="intro" aria-label="Quick info">
-  <div class="intro__grid wrap">
-    <a class="intro__item" href={business.phone.href}>
-      <span class="intro__label"><Icon name="phone" /> Call the shop</span>
-      <span class="intro__value">{business.phone.display}</span>
-    </a>
-    <a class="intro__item" href={business.mapsUrl} target="_blank" rel="noopener">
-      <span class="intro__label"><Icon name="pin" /> Find us</span>
-      <span class="intro__value">{business.address.street}, {business.address.city}</span>
-    </a>
-    <a class="intro__item" href="#visit">
-      <span class="intro__label"><Icon name="clock" /> Today</span>
-      <span class="intro__value"><span class="status-dot" data-open-dot></span><span data-open-short>See hours</span></span>
-    </a>
+
+<section class="intro" id="intro" aria-label="Studio 107 Barbershop" data-intro>
+  <div class="intro__track">
+    <div class="intro__stage" data-intro-stage>
+      <div class="intro__glow" aria-hidden="true"></div>
+      <div class="intro__mark" aria-hidden="true" data-intro-mark><Logo title="" /></div>
+      <img
+        class="intro__still"
+        src="/media/craft-clipper.webp"
+        alt=""
+        width="1240"
+        height="1520"
+        decoding="async"
+        fetchpriority="high"
+        aria-hidden="true"
+      />
+      <canvas class="intro__canvas" data-intro-canvas aria-hidden="true"></canvas>
+
+      <!-- Brand reveal: the clipper's last pass wipes the wordmark in -->
+      <div class="intro__brand" data-intro-brand>
+        <div class="intro__logo" data-intro-logo>
+          <Logo metal title="Studio 107" />
+          <span class="intro__edge" aria-hidden="true"></span>
+        </div>
+        <p class="intro__brand-sub">Barbershop</p>
+        <p class="intro__brand-meta">265 Mountain Ave · Springfield, NJ</p>
+      </div>
+
+      <div class="wrap intro__ui">
+        <div class="intro__open is-on" data-intro-open>
+          <p class="eyebrow">Studio 107 Barbershop · Springfield, NJ</p>
+          <p class="intro__title display">Crafted in<br /><em class="metal-text">the details.</em></p>
+        </div>
+        <div class="intro__caps">
+          {
+            chapters.map((c, i) => (
+              <div class="intro__cap" data-cap={i} aria-hidden="true">
+                <span class="intro__num tnum">0{i + 1}</span>
+                <div>
+                  <p class="intro__h display">
+                    {c.title} <em class="metal-text">{c.em}</em>
+                  </p>
+                  <p class="intro__body">{c.body}</p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="intro__cue" data-intro-cue aria-hidden="true">
+        <span>Scroll</span>
+        <span class="intro__cue-line"></span>
+      </div>
+
+      <div class="intro__foot">
+        <span class="intro__bar" aria-hidden="true"><span class="intro__fill" data-intro-fill></span></span>
+        <a class="intro__skip" href="#top" data-intro-skip>Skip intro</a>
+      </div>
+    </div>
   </div>
 </section>
 
-<style>
-  .intro { background: var(--ink); border-bottom: 1px solid var(--line-light); }
-  .intro__grid { display: grid; grid-template-columns: repeat(3, 1fr); }
-  .intro__item {
-    position: relative; display: grid; gap: 0.35rem; padding: 1.8rem 1.5rem 1.8rem 0;
-    transition: background 0.4s;
+<script>
+  const section = document.querySelector<HTMLElement>('[data-intro]');
+  const stage = section?.querySelector<HTMLElement>('[data-intro-stage]');
+  const canvas = section?.querySelector<HTMLCanvasElement>('[data-intro-canvas]');
+
+  if (section && stage && canvas) {
+    // The intro always starts from the top when the page is opened or refreshed
+    if (!location.hash) {
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      window.scrollTo(0, 0);
+    }
+
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // ?capture: the stage tracks the scroll exactly (used to record frame-by-frame walkthroughs)
+    const snap = /[?&]capture\b/.test(location.search);
+    const open = section.querySelector<HTMLElement>('[data-intro-open]');
+    const caps = [...section.querySelectorAll<HTMLElement>('[data-cap]')];
+    const fill = section.querySelector<HTMLElement>('[data-intro-fill]');
+    const cue = section.querySelector<HTMLElement>('[data-intro-cue]');
+    const mark = section.querySelector<HTMLElement>('[data-intro-mark]');
+    const brand = section.querySelector<HTMLElement>('[data-intro-brand]');
+    const logo = section.querySelector<HTMLElement>('[data-intro-logo]');
+    const skip = section.querySelector<HTMLAnchorElement>('[data-intro-skip]');
+    const still = section.querySelector<HTMLElement>('.intro__still');
+
+    // chapter bands (progress): opening title, then chapters 1–4, then the brand reveal
+    const bands = [0.075, 0.22, 0.52, 0.64, 0.885];
+    const smooth = (a: number, b: number, x: number) => {
+      const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    };
+
+    const target = () => {
+      const r = section.getBoundingClientRect();
+      const run = r.height - window.innerHeight;
+      return run > 0 ? Math.min(1, Math.max(0, -r.top / run)) : 0;
+    };
+
+    let progress = target();
+    let shown = -2;
+    const setChapter = (p: number) => {
+      let i = -1;
+      if (p >= bands[0]) i = 0;
+      while (i >= 0 && i < caps.length && p >= bands[i + 1]) i++;
+      if (i >= caps.length) i = caps.length; // brand reveal: no caption
+      if (i === shown) return;
+      shown = i;
+      open?.classList.toggle('is-on', i === -1);
+      open?.classList.toggle('is-past', i > -1);
+      caps.forEach((c, k) => {
+        c.classList.toggle('is-on', k === i);
+        c.classList.toggle('is-past', k < i);
+      });
+    };
+
+    // where the wordmark sits on the stage, for the wipe
+    let logoL = 0.3;
+    let logoW = 0.4;
+    const measure = () => {
+      if (!logo) return;
+      const s = stage.getBoundingClientRect();
+      const r = logo.getBoundingClientRect();
+      logoL = (r.left - s.left) / s.width;
+      logoW = r.width / s.width || 0.4;
+    };
+    measure();
+    new ResizeObserver(measure).observe(stage);
+
+    let wipe = 0;
+    const update = (p: number, bladeX: number | null) => {
+      setChapter(p);
+      fill?.style.setProperty('--p', p.toFixed(4));
+      cue?.classList.toggle('is-gone', p > 0.02);
+      if (mark) mark.style.opacity = String(1 - smooth(0.02, 0.1, p));
+      // without 3D, the still clipper steps aside for the wordmark
+      if (still) still.style.opacity = section.classList.contains('intro--gl') ? '' : String(1 - smooth(0.86, 0.9, p));
+      // the wipe follows the blade across the wordmark; without 3D it follows the scroll
+      const byScroll = smooth(0.905, 0.965, p);
+      let w = byScroll;
+      if (bladeX !== null && p > 0.88 && p < 0.99) w = Math.min(1, Math.max(0, (bladeX - logoL) / logoW));
+      if (p < 0.885) w = 0;
+      if (p >= 0.99) w = 1;
+      // never un-reveal while moving forward through the pass
+      wipe = p > 0.885 && p < 0.99 ? Math.max(wipe * (p > 0.89 ? 1 : 0), w) : w;
+      brand?.style.setProperty('--w', wipe.toFixed(4));
+      brand?.classList.toggle('is-on', p > 0.885);
+      brand?.classList.toggle('is-done', p > 0.955);
+    };
+    update(progress, null);
+
+    let render: ((p: number, dt: number, t: number) => number) | null = null;
+    let visible = true;
+    let raf = 0;
+    let last = 0;
+    let lastP = -1;
+
+    const frame = (now: number) => {
+      raf = 0;
+      if (!visible) return;
+      const dt = Math.min(0.05, (now - (last || now)) / 1000);
+      last = now;
+      const goal = target();
+      progress = snap ? goal : progress + (goal - progress) * (1 - Math.exp(-dt * (reduced ? 30 : 6)));
+      if (Math.abs(goal - progress) < 0.0002) progress = goal;
+      const bx = render ? render(progress, dt, now) : null;
+      if (render || progress !== lastP) update(progress, bx);
+      lastP = progress;
+      raf = requestAnimationFrame(frame);
+    };
+    const start = () => {
+      if (!raf) {
+        last = 0;
+        raf = requestAnimationFrame(frame);
+      }
+    };
+
+    import('../scripts/craft-3d')
+      .then(({ createCraft }) => {
+        render = createCraft(canvas, stage, { reduced, mode: 'intro' });
+        section.classList.add(render ? 'intro--gl' : 'intro--nogl');
+      })
+      .catch(() => section.classList.add('intro--nogl'));
+
+    new IntersectionObserver((entries) => {
+      visible = entries.some((e) => e.isIntersecting);
+      if (visible) start();
+    }).observe(section);
+    start();
+
+    skip?.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelector('#top')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+    });
   }
-  .intro__item + .intro__item { padding-left: 1.75rem; border-left: 1px solid var(--line-light); }
-  .intro__label { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold); }
-  .intro__label :global(svg) { width: 14px; height: 14px; }
-  .intro__value { display: inline-flex; align-items: center; gap: 0.55rem; font-family: var(--serif); font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.7rem); line-height: 1.15; transition: color 0.3s; }
-  .intro__item:hover .intro__value { color: var(--gold-hi); }
-  @media (max-width: 760px) {
-    .intro__grid { grid-template-columns: 1fr; }
-    .intro__item { padding: 1.2rem 0; }
-    .intro__item + .intro__item { padding-left: 0; border-left: 0; border-top: 1px solid var(--line-light); }
+</script>
+
+<style>
+  .intro {
+    position: relative;
+    z-index: 1;
+    background: #040404;
+  }
+  /* Soft hand-off into the hero */
+  .intro::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -28vh;
+    height: 28vh;
+    background: linear-gradient(180deg, #040404, rgba(4, 4, 4, 0));
+    pointer-events: none;
+  }
+  .intro__track {
+    height: 640vh;
+    position: relative;
+  }
+  .intro__stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 80% at 50% 120%, rgba(201, 205, 210, 0.06), transparent 60%),
+      #040404;
+  }
+  .intro__glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(30% 40% at 50% 46%, rgba(196, 202, 210, 0.15), transparent 70%),
+      radial-gradient(60% 30% at 50% 78%, rgba(196, 202, 210, 0.07), transparent 70%);
+    pointer-events: none;
+  }
+  /* Huge faint engraved script behind the model (no-WebGL view; the 3D stage draws its own) */
+  .intro__mark {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: min(92vw, 1500px);
+    transform: translate(-50%, -50%);
+    color: rgba(214, 218, 224, 0.12);
+    pointer-events: none;
+  }
+  .intro__mark :global(svg) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .intro__mark :global(path) {
+    fill: rgba(214, 218, 224, 0.03);
+    stroke: currentColor;
+    stroke-width: 1.2;
+    vector-effect: non-scaling-stroke;
+  }
+  .intro__still {
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    height: min(70%, 680px);
+    width: auto;
+    transform: translate(-50%, -50%);
+    -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent);
+    mask-image: radial-gradient(closest-side, #000 72%, transparent);
+    pointer-events: none;
+    transition: opacity 900ms var(--ease);
+  }
+  :global(.intro--gl) .intro__still {
+    opacity: 0;
+  }
+  .intro__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+    touch-action: pan-y;
+    opacity: 0;
+    transition: opacity 1200ms var(--ease);
+  }
+  :global(.intro--gl) .intro__canvas {
+    opacity: 1;
+  }
+
+  /* Brand reveal */
+  .intro__brand {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 18px;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  .intro__brand.is-on {
+    visibility: visible;
+  }
+  .intro__logo {
+    position: relative;
+    width: min(84vw, 980px);
+    clip-path: inset(-60% calc((1 - var(--w, 0)) * 100% - max(0%, (var(--w, 0) - 0.96) * 400%)) -60% -20%);
+  }
+  .intro__logo :global(svg) {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 0 28px rgba(196, 202, 210, 0.28));
+  }
+  .intro__edge {
+    position: absolute;
+    top: -12%;
+    bottom: -12%;
+    left: calc(var(--w, 0) * 100%);
+    width: 2px;
+    background: linear-gradient(180deg, transparent, #ffffff 30%, #ffffff 70%, transparent);
+    box-shadow: 0 0 18px 4px rgba(225, 232, 242, 0.55);
+    opacity: calc(min(var(--w, 0) * 8, 1) * (1 - var(--w, 0)) * 3);
+  }
+  .intro__brand-sub,
+  .intro__brand-meta {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 900ms var(--ease),
+      transform 900ms var(--ease);
+  }
+  .intro__brand-sub {
+    font-size: clamp(0.8rem, 0.7rem + 0.5vw, 1.05rem);
+    font-weight: 600;
+    letter-spacing: 0.6em;
+    margin-right: -0.6em;
+    text-transform: uppercase;
+    color: var(--bone);
+  }
+  .intro__brand-meta {
+    font-size: var(--step--1);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--silver-hi);
+    transition-delay: 150ms;
+  }
+  .intro__brand.is-done .intro__brand-sub,
+  .intro__brand.is-done .intro__brand-meta {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Copy */
+  .intro__ui {
+    position: relative;
+    height: 100%;
+    pointer-events: none;
+  }
+  .intro__open,
+  .intro__cap {
+    position: absolute;
+    left: max(var(--gutter), env(safe-area-inset-left, 0px));
+    bottom: clamp(70px, 11vh, 120px);
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(6px);
+    visibility: hidden;
+    transition:
+      opacity 700ms var(--ease),
+      transform 900ms var(--ease),
+      filter 700ms var(--ease),
+      visibility 0s linear 900ms;
+  }
+  .intro__open.is-past,
+  .intro__cap.is-past {
+    transform: translateY(-20px);
+  }
+  .intro__open.is-on,
+  .intro__cap.is-on {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+  .intro__open {
+    display: grid;
+    gap: 18px;
+  }
+  .intro__title {
+    font-size: var(--step-4);
+    line-height: 1;
+    letter-spacing: -0.015em;
+    max-width: 9em;
+  }
+  .intro__cap {
+    display: flex;
+    align-items: flex-start;
+    gap: 22px;
+  }
+  .intro__num {
+    margin-top: 0.7em;
+    font-size: var(--step--1);
+    letter-spacing: 0.2em;
+    color: var(--silver-hi);
+  }
+  .intro__h {
+    font-size: var(--step-3);
+    line-height: 1;
+    letter-spacing: -0.012em;
+  }
+  .intro__body {
+    margin-top: 12px;
+    color: var(--bone-2);
+    font-size: var(--step-0);
+  }
+
+  .intro__cue {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(26px, 5vh, 48px);
+    transform: translateX(-50%);
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    margin-right: -0.32em;
+    text-transform: uppercase;
+    color: rgba(241, 238, 232, 0.6);
+    transition: opacity 600ms var(--ease);
+  }
+  .intro__cue.is-gone {
+    opacity: 0;
+  }
+  .intro__cue-line {
+    position: relative;
+    width: 1px;
+    height: 46px;
+    background: rgba(241, 238, 232, 0.16);
+    overflow: hidden;
+  }
+  .intro__cue-line::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 40%;
+    background: var(--silver-hi);
+    animation: intro-cue 2s var(--ease-io) infinite;
+  }
+  @keyframes intro-cue {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(260%);
+    }
+  }
+
+  .intro__foot {
+    position: absolute;
+    right: max(var(--gutter), 24px);
+    bottom: clamp(26px, 5vh, 48px);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .intro__bar {
+    position: relative;
+    width: 110px;
+    height: 1px;
+    background: rgba(241, 238, 232, 0.14);
+    overflow: hidden;
+  }
+  .intro__fill {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, var(--steel), var(--silver-hi));
+    transform-origin: 0 50%;
+    transform: scaleX(var(--p, 0));
+  }
+  .intro__skip {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(241, 238, 232, 0.7);
+    padding: 10px 0;
+    transition: color var(--t-sm) var(--ease);
+  }
+  .intro__skip:hover {
+    color: var(--silver-hi);
+  }
+
+  @media (max-aspect-ratio: 1/1) {
+    .intro__track {
+      height: 560vh;
+    }
+    .intro__glow {
+      background:
+        radial-gradient(60% 30% at 50% 40%, rgba(196, 202, 210, 0.15), transparent 70%),
+        radial-gradient(80% 20% at 50% 62%, rgba(196, 202, 210, 0.07), transparent 70%);
+    }
+    .intro__mark {
+      top: 38%;
+    }
+    .intro__still {
+      top: 38%;
+      height: 46%;
+    }
+    .intro__open,
+    .intro__cap {
+      right: max(var(--gutter), 20px);
+      bottom: clamp(96px, 15vh, 140px);
+    }
+    .intro__title {
+      font-size: clamp(2.3rem, 10vw, 3.4rem);
+    }
+    .intro__h {
+      font-size: clamp(1.9rem, 8vw, 2.6rem);
+    }
+    .intro__cap {
+      gap: 14px;
+    }
+    .intro__cue {
+      display: none;
+    }
+    .intro__foot {
+      left: max(var(--gutter), 20px);
+      right: max(var(--gutter), 20px);
+      bottom: calc(clamp(26px, 5vh, 40px) + env(safe-area-inset-bottom, 0px));
+      justify-content: space-between;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .intro__open,
+    .intro__cap {
+      transform: none;
+      filter: none;
+    }
+    .intro__cue-line::after {
+      animation: none;
+    }
   }
 </style>

@@ -1,31 +1,46 @@
 ---
-import '@fontsource/instrument-serif/400.css';
-import '@fontsource/instrument-serif/400-italic.css';
-import '@fontsource-variable/manrope';
+import '@fontsource/cormorant-garamond/latin-500.css';
+import '@fontsource/cormorant-garamond/latin-500-italic.css';
+import '@fontsource/cormorant-garamond/latin-600-italic.css';
+import '@fontsource-variable/inter-tight/wght.css';
 import '../styles/global.css';
-import { business, hours, fullAddress } from '../data/business';
-import { services, serviceGroups, priceRange } from '../data/services';
+import { business, dayOrder } from '../data/business';
+import { services, priceRange } from '../data/services';
+import { mapsSearchLink } from '../lib/links';
+import ogImage from '../assets/og.jpg';
+import { getImage } from 'astro:assets';
 
 interface Props {
   title: string;
   description: string;
-  image?: string;
 }
-const { title, description, image = '/media/og-image.jpg' } = Astro.props;
+const { title, description } = Astro.props;
+const site = Astro.site ?? new URL('https://studio107barbershop.example');
+const canonical = new URL(Astro.url.pathname, site).href;
+const og = await getImage({ src: ogImage, format: 'jpg', width: 1200, height: 630 });
+const ogUrl = new URL(og.src, site).href;
 
-// Set SITE_URL when deploying (e.g. SITE_URL=https://www.yourdomain.com npm run build).
-const site = Astro.site;
-const canonical = site ? new URL(Astro.url.pathname, site).href : undefined;
-const absImage = site ? new URL(image, site).href : image;
+const schemaDay: Record<string, string> = {
+  mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
+};
+const openingHoursSpecification = dayOrder
+  .filter((d) => business.hours[d])
+  .map((d) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: `https://schema.org/${schemaDay[d]}`,
+    opens: business.hours[d]!.open,
+    closes: business.hours[d]!.close,
+  }));
 
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'BarberShop',
+  '@id': `${site.href}#barbershop`,
   name: business.name,
-  description,
+  url: site.href,
+  image: ogUrl,
   telephone: business.phone.e164,
-  ...(canonical ? { url: canonical, '@id': `${canonical}#barbershop` } : {}),
-  image: [absImage],
+  priceRange: priceRange,
   address: {
     '@type': 'PostalAddress',
     streetAddress: business.address.street,
@@ -34,37 +49,25 @@ const jsonLd = {
     postalCode: business.address.postalCode,
     addressCountry: business.address.country,
   },
-  hasMap: business.mapsUrl,
-  openingHoursSpecification: hours
-    .filter((h) => h.open && h.close)
-    .map((h) => ({
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: `https://schema.org/${h.schemaDay}`,
-      opens: h.open,
-      closes: h.close,
+  hasMap: mapsSearchLink(),
+  openingHoursSpecification,
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Services',
+    itemListElement: services.map((s) => ({
+      '@type': 'Offer',
+      price: s.price.toFixed(2),
+      priceCurrency: 'USD',
+      itemOffered: { '@type': 'Service', name: s.name },
     })),
-  ...(services.length ? {
-    priceRange,
-    hasOfferCatalog: {
-      '@type': 'OfferCatalog',
-      name: 'Services',
-      itemListElement: serviceGroups.map((g) => ({
-        '@type': 'OfferCatalog',
-        name: g,
-        itemListElement: services.filter((s) => s.group === g).map((s) => ({
-          '@type': 'Offer',
-          itemOffered: { '@type': 'Service', name: s.name },
-          priceSpecification: {
-            '@type': 'PriceSpecification',
-            priceCurrency: 'USD',
-            ...(s.from ? { minPrice: s.price } : { price: s.price }),
-          },
-        })),
-      })),
-    },
-  } : {}),
-  ...(business.booking ? { potentialAction: { '@type': 'ReserveAction', target: business.booking.url } } : {}),
-  ...(business.social.length ? { sameAs: business.social.map((s) => s.url) } : {}),
+  },
+  amenityFeature: [{ '@type': 'LocationFeatureSpecification', name: 'Free parking behind the shop', value: true }],
+  potentialAction: {
+    '@type': 'ReserveAction',
+    name: 'Book an appointment',
+    target: { '@type': 'EntryPoint', urlTemplate: business.bookingUrl },
+  },
+  sameAs: business.social.map((s) => s.url),
 };
 ---
 
@@ -75,32 +78,41 @@ const jsonLd = {
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    {canonical && <link rel="canonical" href={canonical} />}
-    <meta name="theme-color" content="#0d0c0b" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={business.name} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={absImage} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogUrl} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content={`${business.name} storefront at ${fullAddress}`} />
-    {canonical && <meta property="og:url" content={canonical} />}
     <meta property="og:locale" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={absImage} />
+    <meta name="twitter:image" content={ogUrl} />
 
-    <meta name="geo.region" content="US-NJ" />
-    <meta name="geo.placename" content="Springfield, New Jersey" />
+    <link rel="preload" as="image" href="/media/hero-poster.jpg" fetchpriority="high" />
 
-    <link rel="preload" as="image" href="/media/storefront-hero.webp" fetchpriority="high" />
-
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.documentElement.classList.add('js-reveal');
+        // Safety net: if the page script fails to load for any reason, never leave text hidden.
+        setTimeout(function () {
+          if (!document.documentElement.classList.contains('reveal-ready')) {
+            document.documentElement.classList.remove('js-reveal');
+          }
+        }, 2500);
+      }
+    </script>
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
-    <script is:inline>document.documentElement.classList.add('js');</script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>

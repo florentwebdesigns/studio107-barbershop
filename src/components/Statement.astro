@@ -1,0 +1,111 @@
+---
+/** Brand statement. Words light up from muted to bone as the reader scrolls through. */
+import Icon from './Icon.astro';
+import { bookAttrs } from '../lib/links';
+
+const line = 'Sit down a regular. Leave looking like a statement.';
+const words = line.split(' ');
+---
+
+<section class="statement section blend" id="statement" aria-label="About Studio 107">
+  <div class="wrap statement__wrap">
+    <p class="eyebrow" data-reveal>Studio 107 Barbershop</p>
+    <p class="statement__text display" data-scrub>
+      {
+        words.map((w, i) => (
+          <>
+            <span class:list={['w', { 'w--em': i >= 4 }]} style={`--wi:${i}`}>
+              {w}
+            </span>{' '}
+          </>
+        ))
+      }
+    </p>
+    <div class="statement__foot">
+      <span class="statement__rule" data-reveal aria-hidden="true"></span>
+      <div class="statement__side" data-reveal style="--d:120">
+        <p class="statement__body">
+          Studio 107 is known for distinctive, detailed haircuts and a proper hot towel shave. Book ahead: the
+          chairs fill up.
+        </p>
+        <a class="link-line" {...bookAttrs()}>Book your chair <Icon name="arrow" /></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .statement {
+    padding-block: clamp(96px, 13vw, 200px) clamp(80px, 10vw, 150px);
+    --blend-bg: radial-gradient(70% 60% at 85% 0%, rgba(201, 205, 210, 0.06), transparent 70%);
+  }
+  .statement__wrap {
+    display: grid;
+    gap: clamp(28px, 4vw, 48px);
+  }
+  .statement__text {
+    font-size: var(--step-5);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    max-width: 14.5em;
+  }
+  .w {
+    color: rgba(241, 238, 232, 0.16);
+    transition: color 600ms var(--ease);
+  }
+  .w--em {
+    font-style: italic;
+  }
+  .w.is-lit {
+    color: var(--bone);
+  }
+  .w--em.is-lit {
+    color: var(--silver-hi);
+  }
+  html:not(.js-reveal) .w {
+    color: var(--bone);
+  }
+  html:not(.js-reveal) .w--em {
+    color: var(--silver-hi);
+  }
+  .statement__foot {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 30em);
+    align-items: start;
+    gap: 32px;
+    margin-top: clamp(8px, 2vw, 24px);
+  }
+  .statement__rule {
+    height: 1px;
+    margin-top: 0.85em;
+    background: linear-gradient(90deg, var(--silver), rgba(201, 205, 210, 0));
+    transform-origin: 0 50%;
+  }
+  .js-reveal .statement__rule[data-reveal] {
+    opacity: 1;
+    transform: scaleX(0);
+    transition: transform 1400ms var(--ease);
+  }
+  .js-reveal .statement__rule[data-reveal].is-in {
+    transform: scaleX(1);
+  }
+  .statement__side {
+    display: grid;
+    justify-items: start;
+    gap: 24px;
+  }
+  .statement__body {
+    font-size: var(--step-1);
+    color: var(--bone-2);
+    line-height: 1.6;
+  }
+  @media (max-width: 760px) {
+    .statement__foot {
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+    .statement__rule {
+      width: 64px;
+    }
+  }
+</style>

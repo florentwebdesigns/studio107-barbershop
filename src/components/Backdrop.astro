@@ -1,0 +1,88 @@
+---
+/** Fixed animated backdrop behind all sections (see scripts/backdrop-gl.ts). */
+---
+
+<div class="backdrop" aria-hidden="true">
+  <div class="backdrop__css">
+    <i class="backdrop__ribbon backdrop__ribbon--a"></i>
+    <i class="backdrop__ribbon backdrop__ribbon--b"></i>
+    <i class="backdrop__glow"></i>
+  </div>
+  <canvas class="backdrop__gl" data-backdrop></canvas>
+</div>
+
+<script>
+  import { initBackdrop } from '../scripts/backdrop-gl';
+  initBackdrop();
+</script>
+
+<style>
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: #070707;
+    overflow: hidden;
+  }
+  .backdrop__gl {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 1200ms var(--ease);
+  }
+  :global(.has-backdrop) .backdrop__gl {
+    opacity: 1;
+  }
+
+  /* CSS fallback (no WebGL2): slow pastel ribbons and a drifting chrome glow */
+  .backdrop__css {
+    position: absolute;
+    inset: 0;
+  }
+  :global(.has-backdrop) .backdrop__css {
+    display: none;
+  }
+  .backdrop__ribbon {
+    position: absolute;
+    inset: -50%;
+    background: repeating-linear-gradient(
+      -33deg,
+      rgba(158, 62, 66, 0.05) 0 8vmax,
+      transparent 8vmax 14vmax,
+      rgba(204, 208, 214, 0.045) 14vmax 22vmax,
+      transparent 22vmax 28vmax,
+      rgba(117, 128, 145, 0.05) 28vmax 36vmax,
+      transparent 36vmax 42vmax
+    );
+    filter: blur(30px);
+    animation: ribbon 60s linear infinite;
+  }
+  .backdrop__ribbon--b {
+    opacity: 0.6;
+    animation-duration: 90s;
+    animation-direction: reverse;
+  }
+  .backdrop__glow {
+    position: absolute;
+    width: 80vmax;
+    height: 80vmax;
+    left: 30%;
+    top: -20%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201, 205, 210, 0.1), transparent 60%);
+    animation: glow 40s ease-in-out infinite alternate;
+  }
+  @keyframes ribbon {
+    to {
+      transform: translate3d(-42vmax, -27vmax, 0);
+    }
+  }
+  @keyframes glow {
+    to {
+      transform: translate3d(-40vw, 40vh, 0);
+    }
+  }
+</style>

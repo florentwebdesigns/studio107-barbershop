@@ -1,43 +1,45 @@
 ---
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
-// Photo hero (previous version): import Hero from '../components/Hero.astro'; and use <Hero /> below.
-import DroneHero from '../components/DroneHero.astro';
-import Intro from '../components/Intro.astro';
+import Hero from '../components/Hero.astro';
+import Statement from '../components/Statement.astro';
 import About from '../components/About.astro';
 import Services from '../components/Services.astro';
 import Gallery from '../components/Gallery.astro';
+import Booking from '../components/Booking.astro';
+import Intro from '../components/Intro.astro';
+import Backdrop from '../components/Backdrop.astro';
 import Visit from '../components/Visit.astro';
-import FinalCta from '../components/FinalCta.astro';
 import Footer from '../components/Footer.astro';
 import MobileBar from '../components/MobileBar.astro';
+
+const title = 'Studio 107 Barbershop | Haircuts & Shaves in Springfield, NJ';
+const description =
+  'Studio 107 Barbershop at 265 Mountain Ave, Springfield, NJ: detailed haircuts, fades, beard work and hot towel shaves. Book online on Vagaro or call (973) 376-9661.';
 ---
-<Base
-  title="Studio 107 Barbershop | Men's Haircuts in Springfield, NJ"
-  description="Studio 107 Barbershop: men's haircuts and grooming at 265 Mountain Ave, Springfield, NJ. Open Mon–Fri 9–6, Sat 8–4. Book online or call (973) 376-9661."
->
+
+<Base title={title} description={description}>
+  <Backdrop />
   <Nav />
   <main id="main">
-    <DroneHero />
     <Intro />
+    <Hero />
+    <div class="seam" aria-hidden="true"></div>
+    <Statement />
     <About />
+    <div class="seam" aria-hidden="true"></div>
     <Services />
+    <div class="seam" aria-hidden="true"></div>
     <Gallery />
+    <div class="seam" aria-hidden="true"></div>
+    <Booking />
+    <div class="seam" aria-hidden="true"></div>
     <Visit />
-    <FinalCta />
+    <div class="seam" aria-hidden="true"></div>
   </main>
   <Footer />
   <MobileBar />
+  <script>
+    import '../scripts/main';
+  </script>
 </Base>
-
-<script>
-  import { initSite } from '../scripts/site';
-  initSite();
-</script>
-
-<style is:global>
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #9a8f80; flex: none; position: relative; }
-  .status-dot.is-open { background: #7fbf7a; box-shadow: 0 0 0 0 rgba(127, 191, 122, 0.6); animation: pulse 2.4s infinite; }
-  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(127, 191, 122, 0.55); } 70% { box-shadow: 0 0 0 9px rgba(127, 191, 122, 0); } 100% { box-shadow: 0 0 0 0 rgba(127, 191, 122, 0); } }
-  @media (max-width: 760px) { body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); } }
-</style>

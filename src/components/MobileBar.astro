@@ -1,34 +1,76 @@
 ---
 import Icon from './Icon.astro';
-import { business } from '../data/business';
-const book = business.booking ?? { label: 'Call to Book', url: business.phone.href };
-const bookIcon = business.booking ? 'calendar' : 'phone';
-const bookExt = business.booking ? { target: '_blank', rel: 'noopener' } : {};
+import { telLink, directionsLink, bookAttrs } from '../lib/links';
 ---
-<div class="mbar" data-mbar>
-  <a class="mbar__btn mbar__btn--call" href={book.url} {...bookExt}><Icon name={bookIcon} /> {book.label}</a>
-  {business.booking && <a class="mbar__btn mbar__btn--icon" href={business.phone.href} aria-label={`Call ${business.phone.display}`}><Icon name="phone" /></a>}
-  <a class="mbar__btn" href={business.mapsUrl} target="_blank" rel="noopener"><Icon name="pin" /> Directions</a>
-</div>
+
+<nav class="mbar" aria-label="Quick actions" data-mbar>
+  <a href={telLink()} class="mbar__item">
+    <Icon name="phone" />
+    <span>Call</span>
+  </a>
+  <a href={directionsLink()} target="_blank" rel="noopener" class="mbar__item">
+    <Icon name="pin" />
+    <span>Directions</span>
+  </a>
+  <a {...bookAttrs()} class="mbar__item mbar__item--book">
+    <Icon name="calendar" />
+    <span>Book</span>
+  </a>
+</nav>
 
 <style>
-  .mbar { display: none; }
+  .mbar {
+    display: none;
+  }
   @media (max-width: 760px) {
     .mbar {
-      position: fixed; left: 0.6rem; right: 0.6rem; bottom: calc(0.6rem + env(safe-area-inset-bottom)); z-index: 40;
-      display: grid; grid-template-columns: 1.4fr auto 1fr; gap: 0.4rem; padding: 0.4rem;
-      background: rgba(13, 12, 11, 0.86); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-      border: 1px solid var(--line-light); border-radius: 6px;
-      transform: translateY(calc(100% + 1.5rem)); transition: transform 0.6s var(--ease-out);
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 50;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.5fr;
+      gap: 8px;
+      padding: 10px max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px))
+        max(12px, env(safe-area-inset-left, 0px));
+      background: rgba(12, 12, 11, 0.86);
+      -webkit-backdrop-filter: blur(18px) saturate(1.2);
+      backdrop-filter: blur(18px) saturate(1.2);
+      border-top: 1px solid var(--line);
+      transform: translateY(110%);
+      transition: transform 700ms var(--ease);
     }
-    .mbar.is-visible { transform: none; }
-    .mbar__btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 50px; border-radius: 3px;
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
-      border: 1px solid var(--line-light);
+    .mbar.is-on {
+      transform: none;
     }
-    .mbar__btn--icon { padding-inline: 1rem; }
-    .mbar__btn--call { background: var(--gold-grad); color: #15110b; border-color: transparent; }
-    .mbar__btn :global(svg) { width: 16px; height: 16px; }
+    .mbar__item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 48px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      border: 1px solid rgba(241, 238, 232, 0.16);
+      border-radius: 1px;
+      color: var(--bone);
+    }
+    .mbar__item :global(svg) {
+      width: 16px;
+      height: 16px;
+      color: var(--silver);
+    }
+    .mbar__item--book {
+      border: 0;
+      color: #0c0d0f;
+      background: var(--metal);
+      background-size: 180% 100%;
+    }
+    .mbar__item--book :global(svg) {
+      color: #0c0d0f;
+    }
   }
 </style>

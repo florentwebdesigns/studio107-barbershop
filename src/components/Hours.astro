@@ -1,0 +1,97 @@
+---
+/** Weekly hours table. The current day (America/New_York) is highlighted client-side. */
+import { hoursRows } from '../lib/hours';
+interface Props {
+  compact?: boolean;
+}
+const { compact = false } = Astro.props;
+const rows = hoursRows();
+---
+
+<table class:list={['hours', { 'hours--compact': compact }]} data-hours>
+  <caption class="sr-only">Weekly opening hours</caption>
+  <tbody>
+    {
+      rows.map((r) => (
+        <tr data-day={r.key} class:list={{ 'is-closed': r.closed }}>
+          <th scope="row">
+            <span class="hours__day">{compact ? r.short : r.day}</span>
+            <span class="hours__today" aria-hidden="true">Today</span>
+          </th>
+          <td class="tnum">{r.range}</td>
+        </tr>
+      ))
+    }
+  </tbody>
+</table>
+
+<style>
+  .hours {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  .hours th,
+  .hours td {
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    font-weight: 400;
+  }
+  .hours td {
+    text-align: right;
+    color: var(--bone-2);
+  }
+  .hours th {
+    color: var(--bone);
+  }
+  .hours tr.is-closed td,
+  .hours tr.is-closed th {
+    color: var(--mist-2);
+  }
+  .hours__today {
+    display: none;
+    margin-left: 10px;
+    padding: 3px 8px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #0c0d0f;
+    background: var(--metal);
+    border-radius: 2px;
+    vertical-align: 2px;
+  }
+  .hours tr.is-today th,
+  .hours tr.is-today td {
+    color: var(--silver-hi);
+  }
+  .hours tr.is-today .hours__today {
+    display: inline-block;
+  }
+  .hours tr.is-today {
+    background: linear-gradient(90deg, rgba(201, 205, 210, 0.08), rgba(201, 205, 210, 0));
+  }
+  .hours tr.is-today th {
+    padding-left: 12px;
+    box-shadow: inset 1px 0 0 var(--silver);
+  }
+  .hours--compact {
+    font-size: 0.85rem;
+  }
+  .hours--compact th,
+  .hours--compact td {
+    padding: 7px 0;
+    border-bottom-color: rgba(241, 238, 232, 0.06);
+  }
+  .hours--compact .hours__today {
+    display: none !important;
+  }
+  .hours--compact tr.is-today {
+    background: none;
+  }
+  .hours--compact tr.is-today th {
+    padding-left: 0;
+    box-shadow: none;
+  }
+</style>

@@ -1,26 +1,48 @@
 ---
-interface Props { size?: 'sm' | 'md' | 'lg' }
-const { size = 'md' } = Astro.props;
+/**
+ * Studio 107 script wordmark, vector-traced from the shop's own storefront sign.
+ * Inherits color from `currentColor`, or uses the brushed-chrome gradient with `metal`.
+ */
+import pathData from '../assets/logo-path.txt?raw';
+
+interface Props {
+  class?: string;
+  metal?: boolean;
+  title?: string;
+}
+const { class: className, metal = false, title = 'Studio 107' } = Astro.props;
+const gid = `s7m-${Math.random().toString(36).slice(2, 8)}`;
 ---
-<span class={`logo logo--${size}`}>
-  <span class="logo__mark gold-text">Studio 107</span>
-  <span class="logo__sub">Barbershop</span>
-</span>
+
+<svg
+  class:list={['logo', className]}
+  viewBox="18 15 1304 196"
+  role={title ? 'img' : undefined}
+  aria-label={title || undefined}
+  aria-hidden={title ? undefined : 'true'}
+  xmlns="http://www.w3.org/2000/svg"
+>
+  {
+    metal && (
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0.45">
+          <stop offset="0" stop-color="#6f747b" />
+          <stop offset="0.22" stop-color="#c9ced4" />
+          <stop offset="0.38" stop-color="#ffffff" />
+          <stop offset="0.52" stop-color="#9aa1a9" />
+          <stop offset="0.72" stop-color="#e4e8ec" />
+          <stop offset="1" stop-color="#737981" />
+        </linearGradient>
+      </defs>
+    )
+  }
+  <path d={pathData.trim()} fill={metal ? `url(#${gid})` : 'currentColor'} fill-rule="evenodd"></path>
+</svg>
 
 <style>
-  .logo { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1; }
-  .logo__mark {
-    font-family: var(--serif); font-style: italic; font-weight: 400;
-    font-size: 1.85rem; letter-spacing: -0.01em; line-height: 0.9;
-    background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
-    padding-right: 0.08em;
+  .logo {
+    width: auto;
+    height: 1em;
+    overflow: visible;
   }
-  .logo__sub {
-    font-family: var(--sans); font-size: 0.56rem; font-weight: 600;
-    letter-spacing: 0.52em; text-transform: uppercase; margin-top: 0.3rem; padding-left: 0.12em;
-    color: var(--text-light); opacity: 0.88;
-  }
-  .logo--lg .logo__mark { font-size: clamp(2.6rem, 2rem + 2.5vw, 4rem); }
-  .logo--lg .logo__sub { font-size: 0.72rem; margin-top: 0.55rem; }
-  .logo--sm .logo__mark { font-size: 1.5rem; }
 </style>

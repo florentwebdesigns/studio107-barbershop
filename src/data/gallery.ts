@@ -1,70 +1,61 @@
 /**
- * Gallery media. All items are real photos/footage of Studio 107.
- * To add haircut photos later, drop files into /public/media and append entries.
- * `layout` controls the editorial grid placement: 'tall' | 'wide' | 'square' | 'feature'.
+ * Gallery media. Only authentic Studio 107 photography belongs here.
+ * To add a photo (for example finished cuts from the shop): drop the file into src/assets/gallery/,
+ * import it below, and add an entry. `shape` sets the tile proportion: 'tall' | 'square' | 'wide'.
  */
+import type { ImageMetadata } from 'astro';
+import interiorWide from '../assets/gallery/interior-wide.webp';
+import stillChairs from '../assets/gallery/still-chairs.webp';
+import stillRoom from '../assets/gallery/still-room.webp';
+import stillStation from '../assets/gallery/still-station.webp';
+import storefront from '../assets/gallery/storefront.webp';
+import exteriorStreet from '../assets/gallery/exterior-street.webp';
+
 export type GalleryItem = {
-  src: string;
-  thumb?: string;
+  src: ImageMetadata;
   alt: string;
   caption: string;
-  layout: 'tall' | 'wide' | 'square' | 'feature';
-  video?: string;
-  width: number;
-  height: number;
+  shape: 'tall' | 'square' | 'wide';
 };
 
 export const gallery: GalleryItem[] = [
   {
-    src: '/media/interior-wide.webp',
-    thumb: '/media/interior-wide-sm.webp',
+    src: interiorWide,
     alt: 'Inside Studio 107 Barbershop: a row of black barber chairs facing white-framed mirrors on a reclaimed-wood wall',
-    caption: 'The floor — chairs, mirrors and the reclaimed-wood wall',
-    layout: 'feature',
-    width: 1096,
-    height: 1268,
+    caption: 'The floor',
+    shape: 'tall',
   },
   {
-    src: '/media/storefront.webp',
-    thumb: '/media/storefront-sm.webp',
-    alt: 'Studio 107 Barbershop storefront at 265 Mountain Ave with its black and gold sign and barber pole',
-    caption: '265 Mountain Ave, Springfield',
-    layout: 'wide',
-    width: 2000,
-    height: 1278,
-  },
-  {
-    src: '/media/still-station.webp',
-    alt: 'A Studio 107 barber station with a white mirror, tools and wood drawers',
+    src: stillStation,
+    alt: 'A Studio 107 barber station with a white-framed mirror, tools on the counter and wood drawers',
     caption: 'A station, ready',
-    layout: 'tall',
-    video: '/media/interior-reveal.mp4',
-    width: 816,
-    height: 1016,
+    shape: 'square',
   },
   {
-    src: '/media/still-chairs.webp',
-    alt: 'Classic black barber chairs lined up along the mirrors at Studio 107',
+    src: stillChairs,
+    alt: 'Classic black barber chairs with chrome bases lined up along the mirrors at Studio 107',
     caption: 'Classic chairs',
-    layout: 'square',
-    width: 816,
-    height: 1016,
+    shape: 'tall',
   },
   {
-    src: '/media/still-room.webp',
+    src: storefront,
+    alt: 'Studio 107 Barbershop storefront at 265 Mountain Ave with its black sign, script logo and barber pole',
+    caption: '265 Mountain Ave',
+    shape: 'wide',
+  },
+  {
+    src: stillRoom,
     alt: 'Wide view of the bright Studio 107 interior with plants, a wall clock and the front counter',
     caption: 'Bright, open, clean',
-    layout: 'square',
-    width: 816,
-    height: 1016,
+    shape: 'square',
   },
   {
-    src: '/media/exterior-street.webp',
-    thumb: '/media/exterior-street-sm.webp',
+    src: exteriorStreet,
     alt: 'Street view of the Mountain Ave storefronts in Springfield, NJ, including Studio 107 Barbershop',
-    caption: 'On Mountain Ave',
-    layout: 'wide',
-    width: 2000,
-    height: 1119,
+    caption: 'On Mountain Avenue',
+    shape: 'wide',
   },
 ];
+
+/** Images used outside the gallery grid (About section). */
+export const shopImages = { interiorWide, stillChairs, stillRoom, stillStation, storefront };

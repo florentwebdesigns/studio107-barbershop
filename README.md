@@ -1,84 +1,89 @@
 # Studio 107 Barbershop — website
 
-Built by FD Web Designs LLC. Static site (Astro 5, no runtime framework, zero client dependencies).
+Static Astro 5 site for Studio 107 Barbershop, 265 Mountain Avenue, Springfield, NJ 07081.
+No client-side framework: a few small vanilla TypeScript modules, self-hosted fonts, a scroll-driven three.js
+clipper intro and a WebGL hero.
 
 ## Run it
 
 ```bash
 npm install
-npm run dev        # http://localhost:4321
-npm run build      # outputs static files to dist/
-npm run preview    # serve the built site
+npm run dev       # http://localhost:4321
+npm run build     # outputs static files to dist/
+npm run preview   # serves dist/ locally
 ```
 
-## Deploy
+Requires Node 18.20+ (Node 20 or 22 recommended).
 
-The build is plain static HTML/CSS/JS in `dist/`, so it runs on any static host.
+## Environment
 
-- **Vercel / Netlify:** import the folder (or its Git repo). Build command `npm run build`, output directory `dist`.
-- **Set the domain** so canonical URLs, Open Graph URLs, robots.txt and sitemap.xml use absolute links:
-  add an environment variable `SITE_URL=https://www.your-domain.com` before building.
+| Variable   | Purpose                                                          |
+| ---------- | ---------------------------------------------------------------- |
+| `SITE_URL` | Live domain. Used for the canonical URL, Open Graph image URLs, sitemap and robots.txt. |
 
-## Where to edit things
+Copy `.env.example` to `.env` for local builds, and set `SITE_URL` in Vercel's project settings.
 
-| What | File |
-|---|---|
-| Name, address, phone, hours, booking link, socials | `src/data/business.ts` |
-| Service menu (empty until the shop confirms services/prices) | `src/data/services.ts` |
-| Gallery photos/videos (add haircut photos here) | `src/data/gallery.ts` + files in `public/media/` |
-| Colours, fonts, spacing | `src/styles/global.css` (tokens at the top) |
-| Hero film timing | `src/scripts/hero-film.ts` |
+## Where things live
 
-- **Booking:** `business.booking` points to the shop's Vagaro page; every "Book Now" button opens it. Set it to `null` to fall back to "Call to Book".
-  Set it to `{ label: 'Book Online', url: '…' }` once a real booking provider is confirmed and every CTA switches over.
-- **Services:** the menu and prices live in `src/data/services.ts` (copied from Vagaro). Keep it in sync when prices change; the JSON-LD offer catalog updates automatically.
-  Add entries and a full menu (with optional groups, prices, durations) renders automatically.
+```
+src/
+  data/
+    business.ts    name, address, phone, hours, amenities, Vagaro booking URL, optional SMS number
+    services.ts    service menu and starting prices (from the shop's Vagaro listing)
+    gallery.ts     gallery photos, captions and alt text
+  lib/
+    hours.ts       hour formatting + live open/closed status (America/New_York)
+    links.ts       tel:, sms:, directions, map and booking link helpers
+  assets/
+    logo-path.txt  the Studio 107 script logo, traced to a single SVG path
+  components/      Intro, Backdrop, Nav, Hero, Statement, About, Services, Gallery, Booking, Visit, Hours, Footer, MobileBar
+  scripts/
+    craft-3d.ts    the clipper intro (three.js): studio lighting, chrome clipper with the Studio 107 logo,
+                   hair that gets cut, exploded view and the logo wipe
+    hero-gl.ts     the live cinematic hero (WebGL2)
+    backdrop-gl.ts the animated site-wide background behind every section (WebGL2)
+    main.ts        nav, mobile menu, reveals, status, lightbox, map loader
+  styles/global.css  design tokens (chrome palette, type scale, motion) and shared styles
+public/media/      hero.mp4 (looping interior footage), hero-poster.jpg, craft-clipper.webp (intro fallback still)
+```
 
-## The living storefront hero
+## Common updates
 
-The hero is the real storefront photo brought to life in WebGL (`src/scripts/storefront-hero.ts`):
+**Hours** — edit `hours` in `src/data/business.ts` (24-hour `"HH:MM"`, `null` for closed). The hours table, the
+"Open now" status, the mobile menu, the footer and the structured data all update from this one place.
 
-- A hand-built depth map (`tools/make_depth.py` → `public/media/storefront-depth.png`) splits the photo into planes:
-  roof, facade, the protruding sign / pole / mailbox, and the interior through the glass.
-- The shader uses it for a slow dolly push-in with true parallax (plus gentle mouse parallax on desktop),
-  and adds the live details: the barber pole turning, the neon OPEN sign humming, a light sweep across the gold lettering,
-  soft highlight bloom, a filmic grade, vignette and grain.
-- On phones the photo is reframed so the whole sign stays readable, with the copy beneath it.
-- No WebGL: the same framing with a CSS push-in. Reduced motion: a still frame. Rendering pauses when the hero is off-screen.
+**Phone or address** — edit `src/data/business.ts`.
 
-Region coordinates (pole, neon, sign) are in storefront-photo pixels in the shader. If `storefront-hero.webp`
-is replaced with a new photo, re-measure them and regenerate the depth map.
+**Services and prices** — edit `src/data/services.ts`. Set `from: true` for prices that are a starting price.
 
-## Media notes (before launch)
+**Booking** — every Book button opens `bookingUrl` (the shop's Vagaro page) in a new tab.
 
-The supplied media looks like it came from Google Maps / Street View (screenshots and a screen recording). It's fine for a pitch or preview,
-but before the site goes live, get the owner's own photos/video or written permission to use these. The video was cropped to remove the
-Maps player controls and watermark. Footage shot on a phone (4K, landscape, a slow walk from the sidewalk through the door) would make a much sharper hero.
-Just replace the files in `public/media/` with the same names.
+**Texting** — if the shop confirms a number that receives texts, set `sms` in `business.ts`. A "Text the shop"
+card then appears in the Book section. It stays hidden while `sms` is `null`.
 
-## 3D drone homepage
+**Accent color** — the site uses chrome and silver. To switch to the gold of the storefront sign, change
+`--silver`, `--silver-hi`, `--steel` and `--metal` in `src/styles/global.css`.
 
-The homepage hero is a scroll-driven 3D scene (`src/components/DroneHero.astro`, code in `src/scripts/drone/`):
-a dusk "drone shot" of the storefront, a client walking out and pulling the door shut, then the camera
-flies through the door, along the chairs, and stops on a menu board drawn from `src/data/services.ts`.
-The block around the shop is modeled on the Street View imagery of 265 Mountain Ave: the brick strip of
-three shops under a shingled hip roof (neighbours shown without names), gravel forecourt and walkways,
-herringbone brick sidewalk, hydrant, lamp post, utility wires, hedge, the white house on the right and the
-pines behind. Phones without WebGL, data-saver mode and reduced-motion users get the real storefront photo instead.
+**Photos** — put the image in `src/assets/gallery/`, import it in `src/data/gallery.ts`, and add an entry with a
+caption and descriptive alt text. Use real Studio 107 photos only.
 
-Assets in `public/drone/` (about 5.2 MB, loaded only by the homepage hero):
+**Hero video** — replace `public/media/hero.mp4` and `public/media/hero-poster.jpg`, then update `VIDEO_W`,
+`VIDEO_H` and `FOCUS` at the top of `src/scripts/hero-gl.ts`. Encode as H.264 MP4 without audio.
 
-| File | What | Source / license |
-|---|---|---|
-| `tex/*_c/_n/_orm.webp` | PBR texture sets (brick, shingles, pavers, gravel, wood wall, ...) | baked by `tools/bake_textures.py` (ours) |
-| `trees.glb` | pines, bare trees, maple, shrubs | generated with [ez-tree](https://github.com/dgreenheck/ez-tree) (MIT) via `tools/bake-trees.html` + `tools/bake-trees.cjs` |
-| `client.glb` | the client walking out | Ready Player Me sample avatar from the three.js examples |
-| `anims.glb` | walk / idle clips | Mixamo clips from the three.js `Soldier.glb` example, retargeted in `client.ts` |
+## How the intro works
 
-Re-bake textures: `python3 tools/bake_textures.py`. Re-bake trees: `node tools/bake-trees.cjs out.glb`, then
-compress with `gltf-transform optimize out.glb public/drone/trees.glb --compress meshopt --texture-compress webp --texture-size 512`.
+`Intro.astro` pins a tall scroll section; `craft-3d.ts` maps scroll progress to keyframed poses of a procedural
+chrome clipper lit by a custom studio environment, with bloom, ACES tone mapping, vignette and grain. The clipper
+cuts a patch of instanced hair strands, breaks into an exploded view, reassembles, and sweeps across the screen
+to wipe in the Studio 107 logo. Without WebGL, or with reduced motion, a still image and the same captions show.
 
-- Camera path: `KEYS` in `src/scripts/drone/drone-hero.ts` (scroll progress 0 to 1).
-- Overlay text per scroll range: the `data-from` / `data-to` blocks in `DroneHero.astro`.
-- Add `?snap` to the URL to disable scroll smoothing (handy for screenshots).
-- **Roll back to the photo hero:** in `src/pages/index.astro`, import `Hero` and use `<Hero />` instead of `<DroneHero />`.
+## Deploy (Vercel)
+
+Every push to the default branch redeploys production; other branches get preview URLs.
+
+## Still needed from the shop
+
+- Official website domain (for `SITE_URL`)
+- A number that receives texts, if they want the text option
+- Photos of finished cuts, with permission, for the gallery
+- Their own footage of the shop, with permission, for the hero
