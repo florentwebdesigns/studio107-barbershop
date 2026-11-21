@@ -16,14 +16,14 @@ const items = await Promise.all(
   <div class="wrap">
     <header class="gallery__head">
       <div>
-        <p class="eyebrow" data-reveal>Gallery</p>
+        <p class="eyebrow" data-reveal>The work</p>
         <h2 id="gallery-title" class="gallery__title display" data-split>
-          <span class="split-line"><span>Inside</span></span>
-          <span class="split-line" style="--i:1"><span><em class="metal-text">the studio.</em></span></span>
+          <span class="split-line"><span>Fresh from</span></span>
+          <span class="split-line" style="--i:1"><span><em class="metal-text">the chair.</em></span></span>
         </h2>
       </div>
       <div class="gallery__intro" data-reveal style="--d:200">
-        <p>The real shop on Mountain Avenue. Tap any photo to view it full screen.</p>
+        <p>Real cuts from Studio 107’s chairs on Mountain Avenue. See one you like? Tap it, then book a cut like it.</p>
         <a class="link-line" {...bookAttrs()}>Book your chair <Icon name="arrow" /></a>
       </div>
     </header>
@@ -47,6 +47,7 @@ const items = await Promise.all(
               <Image
                 src={g.src}
                 alt={g.alt}
+                style={g.focus ? `object-position:${g.focus}` : undefined}
                 widths={[420, 720, Math.min(g.src.width, 1100)]}
                 sizes="(max-width: 760px) 50vw, 33vw"
                 format="webp"
