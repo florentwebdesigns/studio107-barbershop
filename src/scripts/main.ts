@@ -230,6 +230,8 @@ function initLightbox() {
   const btnClose = lb.querySelector<HTMLButtonElement>('[data-lb-close]')!;
   const btnPrev = lb.querySelector<HTMLButtonElement>('[data-lb-prev]')!;
   const btnNext = lb.querySelector<HTMLButtonElement>('[data-lb-next]')!;
+  const book = lb.querySelector<HTMLAnchorElement>('[data-lb-book]');
+  const bookLabel = lb.querySelector<HTMLElement>('[data-lb-book-label]');
   let index = 0;
   let opener: HTMLElement | null = null;
 
@@ -241,6 +243,13 @@ function initLightbox() {
       img.alt = t.dataset.alt || '';
       cap.textContent = t.dataset.caption || '';
       count.textContent = `${String(index + 1).padStart(2, '0')} / ${String(triggers.length).padStart(2, '0')}`;
+      // Photos of the shop's work: "Book a cut like this" carries the photo into the booking notes
+      const cut = t.dataset.kind === 'cut';
+      if (bookLabel) bookLabel.textContent = cut ? 'Book a cut like this' : 'Book your chair';
+      if (book) {
+        if (cut) book.dataset.bookNote = `Like gallery photo ${index + 1}: ${t.dataset.caption || ''}`.trim();
+        else delete book.dataset.bookNote;
+      }
       img.decode?.().catch(() => {}).finally(() => img.classList.remove('is-swap'));
     };
     if (animate && !reduced) {

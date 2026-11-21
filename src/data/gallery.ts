@@ -16,6 +16,8 @@ export type GalleryItem = {
   alt: string;
   caption: string;
   shape: 'tall' | 'square' | 'wide';
+  /** 'cut' for photos of the shop's work (the lightbox offers "Book a cut like this"), 'shop' for the space. */
+  kind?: 'cut' | 'shop';
 };
 
 export const gallery: GalleryItem[] = [

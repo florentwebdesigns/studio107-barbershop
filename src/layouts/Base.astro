@@ -65,7 +65,7 @@ const jsonLd = {
   potentialAction: {
     '@type': 'ReserveAction',
     name: 'Book an appointment',
-    target: { '@type': 'EntryPoint', urlTemplate: business.bookingUrl },
+    target: { '@type': 'EntryPoint', urlTemplate: new URL('/#book', site).href },
   },
   sameAs: business.social.map((s) => s.url),
 };

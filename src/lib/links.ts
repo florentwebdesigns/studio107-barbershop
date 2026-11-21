@@ -4,7 +4,7 @@ import { business } from '../data/business';
 export const telLink = (phone: string = business.phone.e164) => `tel:${phone.replace(/[^\d+]/g, '')}`;
 
 /**
- * sms: link with an optional prefilled message. Only used if `business.sms` is confirmed.
+ * sms: link with an optional prefilled message, addressed to the booking number.
  * Apple devices read `&body=`, everything else reads `?body=`.
  */
 export const smsLink = (body = '', apple = false, phone: string = business.sms?.e164 ?? business.phone.e164) => {
@@ -25,8 +25,6 @@ export const mapsSearchLink = (query: string = business.mapsQuery) =>
 export const mapsEmbedLink = (query: string = business.mapsQuery) =>
   `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=16&output=embed`;
 
-/** The shop's Vagaro booking page. */
-export const bookingLink = () => business.bookingUrl;
-
-/** Spread onto every booking <a>: opens Vagaro in a new tab. */
-export const bookAttrs = () => ({ href: business.bookingUrl, target: '_blank', rel: 'noopener' });
+/** Spread onto every booking <a>: jumps to the booking form, optionally with a service pre-selected. */
+export const bookAttrs = (service?: string) =>
+  service ? { href: '#book', 'data-book-service': service } : { href: '#book' };

@@ -28,8 +28,8 @@ Copy `.env.example` to `.env` for local builds, and set `SITE_URL` in Vercel's p
 ```
 src/
   data/
-    business.ts    name, address, phone, hours, amenities, Vagaro booking URL, optional SMS number
-    services.ts    service menu and starting prices (from the shop's Vagaro listing)
+    business.ts    name, address, phone, hours, amenities, booking number and optional booking endpoint
+    services.ts    service menu and starting prices
     gallery.ts     gallery photos, captions and alt text
   lib/
     hours.ts       hour formatting + live open/closed status (America/New_York)
@@ -56,10 +56,19 @@ public/media/      hero.mp4 (looping interior footage), hero-poster.jpg, craft-c
 
 **Services and prices** — edit `src/data/services.ts`. Set `from: true` for prices that are a starting price.
 
-**Booking** — every Book button opens `bookingUrl` (the shop's Vagaro page) in a new tab.
+**Booking** — every Book button jumps to the booking form (`Booking.astro`, `src/scripts/booking.ts`), and the
+Book buttons on the menu pre-select that service. The visitor picks a service, day and time (30-minute slots inside
+opening hours, skipping closed days and times that have passed) and adds their name and phone. The form then
+writes the request out as a text to `sms` in `business.ts` and opens their messages app; on a computer it shows a
+QR code that opens the same text on their phone. The number in `sms` must be able to receive texts.
 
-**Texting** — if the shop confirms a number that receives texts, set `sms` in `business.ts`. A "Text the shop"
-card then appears in the Book section. It stays hidden while `sms` is `null`.
+To send requests somewhere else (for example a Google Apps Script that adds them to the shop's Google Calendar),
+set `booking.endpoint` in `business.ts`. The form then POSTs `service, price, date, dateLabel, time, name, phone,
+notes, source, submittedAt` as form fields and shows a "Request sent" confirmation; if the endpoint can't be
+reached it falls back to the text.
+
+Analytics: the form pushes `booking_cta`, `booking_start`, `booking_submit`, `booking_text_opened` and
+`booking_sent` to `window.dataLayer` (Google Tag Manager / GA4) and fires matching `booking:*` DOM events.
 
 **Accent color** — the site uses chrome and silver. To switch to the gold of the storefront sign, change
 `--silver`, `--silver-hi`, `--steel` and `--metal` in `src/styles/global.css`.
@@ -84,6 +93,6 @@ Every push to the default branch redeploys production; other branches get previe
 ## Still needed from the shop
 
 - Official website domain (for `SITE_URL`)
-- A number that receives texts, if they want the text option
+- Confirmation that (973) 376-9661 receives texts (booking requests are texted there), or the number to use instead
 - Photos of finished cuts, with permission, for the gallery
 - Their own footage of the shop, with permission, for the hero

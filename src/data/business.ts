@@ -26,12 +26,19 @@ export const business = {
     e164: '+19733769661',
   },
   /**
-   * Number for a "Text the shop" link. Leave null until the shop confirms this number receives texts.
+   * Where booking requests go. The booking form writes the request as a text message to this number.
+   * Confirm the shop line receives texts, or swap in the number of the phone the shop books from.
    */
-  sms: null as null | { display: string; e164: string },
-  /** The shop's real online booking page (Vagaro). Every "Book" button points here. */
-  bookingUrl: 'https://www.vagaro.com/studio107barbersho/services',
-  bookingProvider: 'Vagaro',
+  sms: { display: '(973) 376-9661', e164: '+19733769661' } as null | { display: string; e164: string },
+  booking: {
+    /**
+     * Optional. A URL that accepts booking requests (for example a Google Apps Script web app that adds them to
+     * the shop's Google Calendar). When set, the form sends each request there as a form POST with the fields
+     * service, price, date, dateLabel, time, name, phone, notes, source and submittedAt, and shows a
+     * "Request sent" confirmation. While it is null, the form opens the visitor's messages app instead.
+     */
+    endpoint: null as string | null,
+  },
   /** No verified official social profiles supplied yet. Add them here when confirmed. */
   social: [] as { label: string; url: string }[],
   mapsQuery: '265 Mountain Ave, Springfield, NJ 07081',

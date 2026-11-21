@@ -7,7 +7,7 @@ import { directionsLink, bookAttrs } from '../lib/links';
 
 const facts = [
   { k: 'Location', v: `${business.address.street}, ${business.address.city}, ${business.address.region}` },
-  { k: 'Booking', v: `Appointments recommended. Book online on ${business.bookingProvider}.` },
+  { k: 'Booking', v: 'Appointments recommended. Request a time online or call.' },
   { k: 'Known for', v: 'Haircuts and hot towel shaves' },
   { k: 'Parking', v: business.parking },
 ];
@@ -60,12 +60,12 @@ const facts = [
         shave the shop is known for.
       </p>
       <p class="about__body" data-reveal style="--d:240">
-        It gets busy, so booking ahead is the way to go. Pick your service and time on Vagaro, or call the shop.
+        It gets busy, so booking ahead is the way to go. Pick your service and time below, or call the shop.
       </p>
       <div class="about__ctas" data-reveal style="--d:280">
         <a class="btn btn--metal" {...bookAttrs()}>
           <Icon name="calendar" />
-          Book on Vagaro
+          Book your chair
         </a>
         <a class="link-line" href={directionsLink()} target="_blank" rel="noopener">
           Get directions <Icon name="arrow" />

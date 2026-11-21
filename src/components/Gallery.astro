@@ -38,6 +38,7 @@ const items = await Promise.all(
               data-lightbox-index={i}
               data-full={g.full}
               data-caption={g.caption}
+              data-kind={g.kind ?? 'shop'}
               data-alt={g.alt}
               aria-label={`View larger: ${g.caption}`}
               data-reveal="clip"
@@ -70,7 +71,7 @@ const items = await Promise.all(
         <figcaption class="lb__cap">
           <span class="lb__count tnum" data-lb-count></span>
           <span data-lb-caption></span>
-          <a class="lb__book" {...bookAttrs()} data-lb-book>Book on Vagaro <Icon name="arrow" /></a>
+          <a class="lb__book" {...bookAttrs()} data-lb-book><span data-lb-book-label>Book your chair</span> <Icon name="arrow" /></a>
         </figcaption>
       </figure>
     </div>

@@ -1,16 +1,28 @@
 ---
 /**
- * Book your chair. Booking happens on the shop's real Vagaro page; the call button is the backup.
- * A "Text the shop" card appears only when business.sms is confirmed.
+ * Book your chair: the booking form (same flow as the One Cut site).
+ * The visitor picks a service, day and time and adds their name and phone. The form writes the request out as a
+ * text to the shop (business.sms); desktop visitors get a QR code that opens the same text on their phone.
+ * When business.booking.endpoint is set (e.g. a Google Calendar script), requests are sent there instead.
+ * See src/scripts/booking.ts.
  */
 import Icon from './Icon.astro';
 import { business } from '../data/business';
-import { bookAttrs, telLink, smsLink } from '../lib/links';
+import { services, serviceGroups, formatPrice } from '../data/services';
+import { telLink, directionsLink } from '../lib/links';
 import { hoursSummary } from '../lib/hours';
 
+const sms = business.sms ?? business.phone;
+const config = {
+  hours: business.hours,
+  timezone: business.timezone,
+  sms: sms.e164,
+  shop: business.shortName,
+  endpoint: business.booking.endpoint,
+};
+const groups = serviceGroups.map((g) => ({ name: g, items: services.filter((s) => s.group === g) }));
 const summary = hoursSummary();
-const sms = business.sms;
-const smsBody = `Hi ${business.shortName}, I'd like to book an appointment.`;
+const viaText = !business.booking.endpoint;
 ---
 
 <section class="book blend" id="book" aria-labelledby="book-title">
@@ -30,27 +42,165 @@ const smsBody = `Hi ${business.shortName}, I'd like to book an appointment.`;
         <span class="split-line" style="--i:1"><span><em class="metal-text">starts here.</em></span></span>
       </h2>
       <p class="book__lede" data-reveal style="--d:200">
-        Appointments are recommended: the shop gets busy. Choose your service and time on {business.bookingProvider} in
-        under a minute, or give the shop a call.
+        {
+          viaText
+            ? 'Pick a service and a time. We write the text, you hit send, and your request goes straight to the shop.'
+            : 'Pick a service and a time, add your name and number, and your request goes straight to the shop.'
+        }
       </p>
     </header>
 
-    <div class="book__ctas" data-reveal style="--d:320">
-      <a class="btn btn--metal book__primary" {...bookAttrs()}>
-        <Icon name="calendar" />
-        Book online
-      </a>
+    <div class="book__card" data-reveal style="--d:300">
+      <form class="bk" data-booking data-config={JSON.stringify(config)} novalidate>
+        <div class="bk__step" data-step="form" tabindex="-1">
+          <fieldset class="bk__group">
+            <legend class="bk__legend"><span class="tnum">01</span> Service</legend>
+            {
+              groups.map((g, gi) => (
+                <div class="bk__svc-group">
+                  <p class="bk__svc-group-name" aria-hidden="true">{g.name}</p>
+                  <div class="bk__services">
+                    {g.items.map((s, i) => (
+                      <label class:list={['bk__chip', 'bk__chip--svc', { 'bk__chip--sig': s.signature }]}>
+                        <input
+                          type="radio"
+                          name="service"
+                          value={s.name}
+                          data-price={formatPrice(s)}
+                          checked={gi === 0 && i === 0}
+                        />
+                        <span class="bk__chip-name">{s.name}</span>
+                        <span class="bk__chip-price tnum">{formatPrice(s)}</span>
+                      </label>
+                    ))}
+                    {gi === groups.length - 1 && (
+                      <label class="bk__chip bk__chip--svc">
+                        <input type="radio" name="service" value="Something else" data-price="" />
+                        <span class="bk__chip-name">Something else</span>
+                        <span class="bk__chip-price">Ask the shop</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              ))
+            }
+          </fieldset>
+
+          <fieldset class="bk__group">
+            <legend class="bk__legend"><span class="tnum">02</span> Day</legend>
+            <div class="bk__days" data-days role="radiogroup" aria-label="Day">
+              <noscript>
+                <input class="bk__input" type="date" name="date" aria-label="Preferred day" />
+              </noscript>
+            </div>
+          </fieldset>
+
+          <div class="bk__row">
+            <label class="bk__field">
+              <span class="bk__legend"><span class="tnum">03</span> Time</span>
+              <span class="bk__select">
+                <select class="bk__input" name="time" data-times>
+                  <option value="">First available</option>
+                </select>
+              </span>
+            </label>
+            <label class="bk__field">
+              <span class="bk__legend"><span class="tnum">04</span> Your name</span>
+              <input class="bk__input" type="text" name="name" autocomplete="name" placeholder="First and last name" required />
+              <span class="bk__error" data-error="name" hidden>Add your name so the shop knows who’s booking.</span>
+            </label>
+            <label class="bk__field">
+              <span class="bk__legend"><span class="tnum">05</span> Phone</span>
+              <input
+                class="bk__input tnum"
+                type="tel"
+                name="phone"
+                autocomplete="tel"
+                inputmode="tel"
+                placeholder="(973) 555-0123"
+                required
+              />
+              <span class="bk__error" data-error="phone" hidden>Add a phone number so the shop can confirm your time.</span>
+            </label>
+          </div>
+
+          <label class="bk__field">
+            <span class="bk__legend">Notes <em>(optional)</em></span>
+            <textarea
+              class="bk__input"
+              name="notes"
+              rows="2"
+              placeholder="Fade height, beard shape, a hot towel shave add-on, a photo you’ll send"></textarea>
+          </label>
+
+          <button class="btn btn--metal bk__submit" type="submit">
+            <Icon name={viaText ? 'message' : 'calendar'} />
+            {viaText ? 'Text my request' : 'Request my appointment'}
+          </button>
+          <p class="bk__fine">
+            {
+              viaText ? (
+                <>
+                  Opens your messages app with your request written out, addressed to {business.shortName} at{' '}
+                  <span class="tnum">{sms.display}</span>. Standard messaging rates apply.
+                </>
+              ) : (
+                <>Your request goes to the shop, and they’ll get back to you to confirm.</>
+              )
+            }
+          </p>
+        </div>
+
+        <div class="bk__step bk__done" data-step="done" hidden tabindex="-1">
+          <p class="bk__done-k">Your text is ready</p>
+          <p class="bk__done-title display">Hit send to request <em class="metal-text">your chair.</em></p>
+          <div class="bk__done-body">
+            <div class="bk__qr-wrap" data-qr-wrap>
+              <div class="bk__qr" data-qr aria-label="QR code that opens the booking text on your phone" role="img"></div>
+              <p class="bk__qr-cap">Scan with your phone’s camera to open the text.</p>
+            </div>
+            <div class="bk__done-side">
+              <pre class="bk__preview" data-preview></pre>
+              <div class="bk__done-ctas">
+                <a class="btn btn--metal" href="#" data-sms-open>
+                  <Icon name="message" />
+                  Open Messages
+                </a>
+                <button class="btn btn--ghost" type="button" data-copy>Copy text</button>
+              </div>
+              <p class="bk__fine">
+                Or text it to <span class="tnum">{sms.display}</span> yourself.
+                <button type="button" class="bk__edit" data-edit>Edit request</button>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bk__step bk__done" data-step="sent" hidden tabindex="-1" aria-live="polite">
+          <p class="bk__done-k">Request sent</p>
+          <p class="bk__done-title display">Thanks, <em class="metal-text">see you soon.</em></p>
+          <p class="bk__preview" data-sent-summary></p>
+          <p class="bk__fine">
+            The shop will get back to you to confirm. Need to change something? Call
+            <a class="tnum" href={telLink()}>{business.phone.display}</a>.
+            <button type="button" class="bk__edit" data-edit>Book another</button>
+          </p>
+        </div>
+      </form>
+    </div>
+
+    <div class="book__ctas" data-reveal style="--d:120">
       <a class="btn btn--ghost" href={telLink()}>
         <Icon name="phone" />
         <span class="tnum">Call {business.phone.display}</span>
       </a>
+      <a class="btn btn--ghost" href={directionsLink()} target="_blank" rel="noopener">
+        <Icon name="pin" />
+        Get Directions
+      </a>
     </div>
 
-    <p class="book__note" data-reveal style="--d:400">
-      <span class="book__note-k">Hot towel shave?</span> Mention it when you book.
-    </p>
-
-    <ul class="book__hours tnum" data-reveal style="--d:480" aria-label="Opening hours">
+    <ul class="book__hours tnum" data-reveal style="--d:200" aria-label="Opening hours">
       {
         summary.map((s) => (
           <li>
@@ -60,21 +210,13 @@ const smsBody = `Hi ${business.shortName}, I'd like to book an appointment.`;
         ))
       }
     </ul>
-
-    {
-      sms && (
-        <a class="book__sms" href={smsLink(smsBody)} data-reveal style="--d:520">
-          <Icon name="message" />
-          <span>
-            <strong>Text the shop</strong>
-            <span class="tnum">{sms.display}</span>
-          </span>
-          <Icon name="arrow" />
-        </a>
-      )
-    }
   </div>
 </section>
+
+<script>
+  import { initBooking } from '../scripts/booking';
+  initBooking();
+</script>
 
 <style>
   .book {
@@ -122,7 +264,7 @@ const smsBody = `Hi ${business.shortName}, I'd like to book an appointment.`;
   .book__light--b {
     right: -25vmax;
     bottom: -40vmax;
-    background: radial-gradient(circle, rgba(168, 143, 116, 0.12), transparent 60%);
+    background: radial-gradient(circle, rgba(110, 31, 36, 0.16), transparent 60%);
     animation: bk-drift-b 32s var(--ease-io) infinite alternate;
   }
   .book__sweep {
@@ -162,12 +304,12 @@ const smsBody = `Hi ${business.shortName}, I'd like to book an appointment.`;
     display: grid;
     justify-items: center;
     gap: 30px;
-    text-align: center;
   }
   .book__head {
     display: grid;
     justify-items: center;
     gap: 30px;
+    text-align: center;
   }
   .book__title {
     font-size: clamp(3.3rem, 1.4rem + 7.2vw, 9.2rem);
@@ -184,32 +326,13 @@ const smsBody = `Hi ${business.shortName}, I'd like to book an appointment.`;
     flex-wrap: wrap;
     justify-content: center;
     gap: 14px;
-    margin-top: 6px;
-  }
-  .book__primary {
-    --btn-pad-x: 44px;
-    min-height: 62px;
-    font-size: 0.8rem;
-  }
-  .book__note {
-    font-size: 0.92rem;
-    color: var(--mist);
-  }
-  .book__note-k {
-    color: var(--bone);
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 1.25rem;
-    margin-right: 4px;
+    margin-top: 10px;
   }
   .book__hours {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 10px 34px;
-    margin-top: 6px;
-    padding-top: 26px;
-    border-top: 1px solid var(--line);
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.18em;
@@ -223,33 +346,404 @@ const smsBody = `Hi ${business.shortName}, I'd like to book an appointment.`;
   .book__hours li span:first-child {
     color: var(--silver);
   }
-  .book__sms {
+
+  /* ───────── Form card ───────── */
+  .book__card {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    margin-top: clamp(14px, 2vw, 30px);
+    padding: clamp(22px, 3vw, 44px);
+    background:
+      linear-gradient(160deg, rgba(201, 205, 210, 0.08), rgba(201, 205, 210, 0) 38%),
+      rgba(15, 15, 16, 0.74);
+    -webkit-backdrop-filter: blur(22px) saturate(1.15);
+    backdrop-filter: blur(22px) saturate(1.15);
+    border: 1px solid rgba(201, 205, 210, 0.26);
+    box-shadow:
+      0 50px 120px -50px rgba(0, 0, 0, 0.9),
+      inset 0 1px 0 rgba(240, 244, 250, 0.06);
+  }
+  .book__card::before {
+    /* chrome corner ticks, like a framed print */
+    content: '';
+    position: absolute;
+    inset: 10px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--silver), var(--silver)) top left / 18px 1px,
+      linear-gradient(var(--silver), var(--silver)) top left / 1px 18px,
+      linear-gradient(var(--silver), var(--silver)) top right / 18px 1px,
+      linear-gradient(var(--silver), var(--silver)) top right / 1px 18px,
+      linear-gradient(var(--silver), var(--silver)) bottom left / 18px 1px,
+      linear-gradient(var(--silver), var(--silver)) bottom left / 1px 18px,
+      linear-gradient(var(--silver), var(--silver)) bottom right / 18px 1px,
+      linear-gradient(var(--silver), var(--silver)) bottom right / 1px 18px;
+    background-repeat: no-repeat;
+    opacity: 0.6;
+  }
+  .bk__step {
+    display: grid;
+    gap: 24px;
+  }
+  .bk__step:focus {
+    outline: none;
+  }
+  .bk__step[hidden] {
+    display: none;
+  }
+  .bk__group {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .bk__legend {
     display: inline-flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 22px;
-    border: 1px solid rgba(201, 205, 210, 0.28);
-    text-align: left;
-  }
-  .book__sms :global(svg) {
-    width: 18px;
-    height: 18px;
-  }
-  .book__sms strong {
-    display: block;
-    font-size: 0.74rem;
-    letter-spacing: 0.2em;
+    align-items: baseline;
+    gap: 10px;
+    padding: 0;
+    margin-bottom: 2px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
+    color: var(--bone-2);
+  }
+  .bk__legend .tnum {
+    color: var(--silver);
+  }
+  .bk__legend em {
+    font-style: normal;
+    color: var(--mist-2);
+    letter-spacing: 0.12em;
   }
 
-  @media (max-width: 560px) {
+  .bk__svc-group {
+    display: grid;
+    gap: 8px;
+  }
+  .bk__svc-group + .bk__svc-group {
+    margin-top: 6px;
+  }
+  .bk__svc-group-name {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mist);
+  }
+  .bk__services {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .bk :global(.bk__chip) {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    padding: 13px 14px 12px;
+    border: 1px solid rgba(241, 238, 232, 0.14);
+    background: rgba(255, 255, 255, 0.015);
+    cursor: pointer;
+    transition:
+      border-color var(--t-sm) var(--ease),
+      background-color var(--t-sm) var(--ease);
+    min-width: 0;
+  }
+  .bk :global(.bk__chip input) {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .bk :global(.bk__chip:hover) {
+    border-color: rgba(201, 205, 210, 0.5);
+  }
+  .bk__chip-name {
+    font-family: var(--font-display);
+    font-size: 1.22rem;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--bone);
+  }
+  .bk__chip-price {
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--mist);
+  }
+  .bk__chip--sig .bk__chip-name {
+    font-style: italic;
+  }
+  .bk :global(.bk__chip:has(input:checked)) {
+    border-color: var(--silver);
+    background: linear-gradient(150deg, rgba(201, 205, 210, 0.16), rgba(201, 205, 210, 0.03));
+  }
+  .bk :global(.bk__chip:has(input:checked) .bk__chip-price) {
+    color: var(--silver-hi);
+  }
+  .bk :global(.bk__chip:has(input:checked)::after) {
+    content: '';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--silver-hi);
+    box-shadow: 0 0 10px rgba(230, 234, 240, 0.8);
+  }
+  .bk :global(.bk__chip:has(input:focus-visible)) {
+    outline: 1.5px solid var(--silver-hi);
+    outline-offset: 2px;
+  }
+
+  .bk__days {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+    mask-image: linear-gradient(90deg, #000 88%, transparent);
+  }
+  .bk__days::-webkit-scrollbar {
+    display: none;
+  }
+  .bk__days :global(.bk__day) {
+    flex: none;
+    scroll-snap-align: start;
+    width: 74px;
+    padding: 10px 6px 9px;
+    text-align: center;
+    justify-items: center;
+    gap: 2px;
+  }
+  .bk__days :global(.bk__day-dow) {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mist);
+  }
+  .bk__days :global(.bk__day-num) {
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    line-height: 1;
+  }
+  .bk__days :global(.bk__day-mon) {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mist-2);
+  }
+
+  .bk__row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+  .bk__field {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    align-content: start;
+  }
+  .bk__input {
+    width: 100%;
+    min-height: 50px;
+    padding: 13px 15px;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--bone);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(241, 238, 232, 0.16);
+    border-radius: 1px;
+    transition:
+      border-color var(--t-sm) var(--ease),
+      background-color var(--t-sm) var(--ease);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  textarea.bk__input {
+    resize: vertical;
+    min-height: 74px;
+    line-height: 1.5;
+  }
+  .bk__input::placeholder {
+    color: var(--mist-2);
+  }
+  .bk__input:hover {
+    border-color: rgba(241, 238, 232, 0.3);
+  }
+  .bk__input:focus {
+    outline: none;
+    border-color: var(--silver);
+    background: rgba(0, 0, 0, 0.5);
+  }
+  .bk__input[aria-invalid='true'] {
+    border-color: #c98d7f;
+  }
+  .bk__select {
+    position: relative;
+    display: block;
+  }
+  .bk__select::after {
+    content: '';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 1.5px solid var(--silver);
+    border-bottom: 1.5px solid var(--silver);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+  .bk__select select {
+    padding-right: 40px;
+    cursor: pointer;
+  }
+  .bk__select option {
+    background: #151516;
+    color: var(--bone);
+  }
+  .bk__error {
+    font-size: 0.8rem;
+    color: #d9a092;
+  }
+  .bk__submit {
+    width: 100%;
+    min-height: 60px;
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  .bk__submit:disabled {
+    opacity: 0.7;
+    cursor: progress;
+  }
+  .bk__fine {
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--mist);
+  }
+  .bk__fine .tnum {
+    color: var(--bone-2);
+  }
+
+  /* Done states */
+  .bk__done {
+    gap: 18px;
+  }
+  .bk__done-k {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--silver);
+  }
+  .bk__done-title {
+    font-size: var(--step-3);
+    line-height: 1;
+  }
+  .bk__done-body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .bk__qr-wrap {
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+    width: 200px;
+  }
+  .bk__qr {
+    width: 200px;
+    height: 200px;
+    padding: 12px;
+    background: var(--bone);
+    border-radius: 2px;
+  }
+  .bk__qr :global(svg) {
+    width: 100%;
+    height: 100%;
+  }
+  .bk__qr-cap {
+    font-size: 0.76rem;
+    text-align: center;
+    color: var(--mist);
+  }
+  .bk__done-side {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+  }
+  .bk__preview {
+    margin: 0;
+    padding: 14px 16px;
+    font-family: var(--font-sans);
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--bone-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: rgba(0, 0, 0, 0.35);
+    border-left: 1px solid var(--silver);
+  }
+  .bk__done-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .bk__edit {
+    margin-left: 8px;
+    color: var(--silver-hi);
+    border-bottom: 1px solid rgba(201, 205, 210, 0.5);
+    font-size: inherit;
+  }
+  :global(.is-touch) .bk__qr-wrap {
+    display: none;
+  }
+  :global(.is-touch) .bk__done-body {
+    grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 760px) {
+    .bk__row {
+      grid-template-columns: 1fr 1fr;
+    }
+    .bk__row .bk__field:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 640px) {
+    .bk__services {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .bk__row {
+      grid-template-columns: 1fr;
+    }
+    .bk__done-body {
+      grid-template-columns: 1fr;
+    }
+    .bk__qr-wrap {
+      justify-self: center;
+    }
     .book__ctas {
       display: grid;
       width: 100%;
     }
+    .book__card {
+      margin-inline: calc(var(--gutter) * -0.4);
+    }
     .book__hours {
       display: grid;
       gap: 8px;
+      justify-items: center;
     }
   }
 </style>

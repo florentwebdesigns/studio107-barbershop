@@ -19,7 +19,7 @@ const shave = services.find((s) => s.signature);
         <span class="split-line" style="--i:1"><span><em class="metal-text">menu.</em></span></span>
       </h2>
       <p class="services__lede" data-reveal style="--d:120">
-        Prices from the shop’s {business.bookingProvider} page. Every service can be booked online.
+        Tap Book on any service to request a time. It only takes a minute.
       </p>
       <figure class="services__img" data-reveal="clip" style="--d:200">
         <Image
@@ -52,7 +52,7 @@ const shave = services.find((s) => s.signature);
                       <span class="sr-only">Price: </span>
                       {formatPrice(s)}
                     </p>
-                    <a class="menu-item__book" {...bookAttrs()} aria-label={`Book ${s.name} on ${business.bookingProvider}`}>
+                    <a class="menu-item__book" {...bookAttrs(s.name)} aria-label={`Book ${s.name}`}>
                       Book <Icon name="arrow" />
                     </a>
                   </div>
@@ -79,7 +79,7 @@ const shave = services.find((s) => s.signature);
             </p>
             <div class="services__shave-foot">
               <span class="services__shave-price tnum">{formatPrice(shave)}</span>
-              <a class="btn btn--metal" {...bookAttrs()}>
+              <a class="btn btn--metal" {...bookAttrs(shave.name)}>
                 <Icon name="calendar" />
                 Book a shave
               </a>
@@ -96,7 +96,7 @@ const shave = services.find((s) => s.signature);
         <div class="services__cta-btns">
           <a class="btn btn--metal" {...bookAttrs()}>
             <Icon name="calendar" />
-            Book Online
+            Book now
           </a>
           <a class="btn btn--ghost" href={telLink()}>
             <Icon name="phone" />
